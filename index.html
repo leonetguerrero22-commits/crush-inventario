@@ -443,6 +443,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro)
 <input type="file" id="file-inp" accept=".json" style="display:none" onchange="handleImport(event)">
 
 
+<!-- Constantes globales — deben estar disponibles antes que cualquier onclick -->
+<script>
+const ROL_CLR = {admin:'#B71C1C',supervisor:'#1565C0',empleado:'#2E7D32'};
+const ROL_LBL = {admin:'👑 Admin',supervisor:'🔑 Supervisor',empleado:'👷 Empleado'};
+const CAT_CLR = {
+  'Lácteos':'#e91e63','Panadería':'#ff9800','Café':'#795548','Frutas':'#4caf50',
+  'Bebidas':'#2196f3','Repostería':'#9c27b0','Embutidos':'#f44336','Proteínas':'#ff5722',
+  'Vegetales':'#8bc34a','Pan':'#ffc107','Empaque':'#607d8b','Limpieza':'#00bcd4',
+  'Cereales':'#ff9800','Rolls':'#D4A843','Galletas':'#9c27b0','Postres':'#e91e63',
+  'Sandwiches':'#4caf50','Frío':'#03a9f4',
+};
+const ACT_ICO = {add:'➕',edit:'✏️',del:'🗑️',reset:'🔄',login:'🔐',logout:'👋'};
+</script>
+
 <!-- Firebase via jsDelivr CDN — funciona en GitHub Pages, Safari y Chrome -->
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-app-compat.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-database-compat.min.js"></script>
@@ -458,19 +472,26 @@ const firebaseConfig = {
   messagingSenderId: "233579552351",
   appId: "1:233579552351:web:078fe5b2e2aa0d771985ea",
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+// Inicializar Firebase de forma segura
+let db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+} catch(e) {
+  console.warn('Firebase no disponible, modo local activado');
+}
 
 // Wrappers Firebase Compat — funcionan en Safari, Chrome, Android y iPhone
 function ref(dbOrPath, path) {
-  return path !== undefined ? firebase.database().ref(path) : firebase.database().ref(dbOrPath);
+  if(!db) return null;
+  return path !== undefined ? db.ref(path) : db.ref(dbOrPath);
 }
-function set(r, val)    { return r.set(val); }
-function get(r)         { return r.once('value'); }
-function push(r, val)   { return r.push(val); }
-function onValue(r, cb) { r.on('value', cb); return function(){ r.off('value', cb); }; }
-function remove(r)      { return r.remove(); }
-function update(r, val) { return r.update(val); }
+function set(r, val)    { return r ? r.set(val) : Promise.resolve(); }
+function get(r)         { return r ? r.once('value') : Promise.resolve({exists:()=>false,val:()=>null}); }
+function push(r, val)   { return r ? r.push(val) : Promise.resolve(); }
+function onValue(r, cb) { if(r){ r.on('value', cb); return function(){ r.off('value', cb); }; } return function(){}; }
+function remove(r)      { return r ? r.remove() : Promise.resolve(); }
+function update(r, val) { return r ? r.update(val) : Promise.resolve(); }
 
 
 const DEF_USUARIOS = [
