@@ -660,7 +660,10 @@ async function loadFromFirebase(){
     subscribeAll(); // Suscribirse a cambios en tiempo real
   } catch(e){
     syncDot('offline');
-    // Sin Firebase - seguir con datos locales ya cargados
+    // Sin Firebase — renderizar con datos locales por defecto
+    if(currentTab==='insumos') renderIns();
+    if(currentTab==='terminados') renderProd();
+    if(currentTab==='dashboard') renderDash();
   }
 }
 
@@ -673,14 +676,16 @@ function subscribeAll(){
   }));
   // Insumos
   listeners.push(onValue(ref(db,'inventario/insumos'), snap=>{
-    S.insumos = snap.exists() ? Object.values(snap.val()) : [];
+    const fromDB = snap.exists() ? Object.values(snap.val()) : [];
+    S.insumos = fromDB.length > 0 ? fromDB : JSON.parse(JSON.stringify(DEF_INS));
     if(currentTab==='insumos') renderIns();
     if(currentTab==='dashboard') renderDash();
     updateBadges();
   }));
   // Productos
   listeners.push(onValue(ref(db,'inventario/productos'), snap=>{
-    S.productos = snap.exists() ? Object.values(snap.val()) : [];
+    const fromDB = snap.exists() ? Object.values(snap.val()) : [];
+    S.productos = fromDB.length > 0 ? fromDB : JSON.parse(JSON.stringify(DEF_PROD));
     if(currentTab==='terminados') renderProd();
     if(currentTab==='dashboard') renderDash();
     updateBadges();
@@ -824,9 +829,19 @@ window.goTab = function(tab){
   document.getElementById(`nav-${tab}`)?.classList.add('active');
   document.getElementById('fab').style.display=(tab==='insumos'||tab==='terminados')?'flex':'none';
   document.getElementById('content').scrollTop=0;
-  if(tab==='dashboard') renderDash();
-  if(tab==='insumos') renderIns();
-  if(tab==='terminados') renderProd();
+  if(tab==='dashboard'){
+    if(S.insumos.length===0) S.insumos=JSON.parse(JSON.stringify(DEF_INS));
+    if(S.productos.length===0) S.productos=JSON.parse(JSON.stringify(DEF_PROD));
+    renderDash();
+  }
+  if(tab==='insumos'){
+    if(S.insumos.length===0) S.insumos=JSON.parse(JSON.stringify(DEF_INS));
+    renderIns();
+  }
+  if(tab==='terminados'){
+    if(S.productos.length===0) S.productos=JSON.parse(JSON.stringify(DEF_PROD));
+    renderProd();
+  }
   if(tab==='mermas') renderMermas();
   if(tab==='bitacora') renderLog();
 };
