@@ -628,21 +628,20 @@ function syncDot(state){ // 'online'|'syncing'|'offline'
 }
 
 async function initDB(){
-  // Mostrar login inmediatamente con datos por defecto
+  // Cargar datos por defecto INMEDIATAMENTE
   S.usuarios = JSON.parse(JSON.stringify(DEF_USUARIOS));
   S.insumos  = JSON.parse(JSON.stringify(DEF_INS));
   S.productos= JSON.parse(JSON.stringify(DEF_PROD));
   S.bitacora = [];
   S.mermas   = [];
   
-  // Mostrar splash por 1.5 segundos y luego ir al login
+  // Ir al login en 800ms sin esperar Firebase
   document.getElementById('splash-msg').textContent = 'Cargando...';
   setTimeout(() => {
-    syncDot('syncing');
     showLogin();
-    // Conectar con Firebase en segundo plano
-    loadFromFirebase();
-  }, 1500);
+    // Firebase carga en segundo plano sin bloquear
+    setTimeout(loadFromFirebase, 500);
+  }, 800);
 }
 
 async function loadFromFirebase(){
@@ -730,17 +729,15 @@ async function fbLog(tipo, descripcion){
 
 // ── LOGIN UI ─────────────────────────────────────────────────────────────────
 function showLogin(){
-  // Siempre mostrar usuarios por defecto inmediatamente
-  if(S.usuarios.length === 0){
-    S.usuarios = JSON.parse(JSON.stringify(DEF_USUARIOS));
-  }
+  if(S.usuarios.length === 0) S.usuarios = JSON.parse(JSON.stringify(DEF_USUARIOS));
   document.getElementById('splash').style.display='none';
   document.getElementById('screen-login').style.display='flex';
   renderLoginUsers();
 }
 
 function renderLoginUsers(){
-  document.getElementById('user-grid').innerHTML = S.usuarios.map(u=>`
+  const users = S.usuarios.length > 0 ? S.usuarios : DEF_USUARIOS;
+  document.getElementById('user-grid').innerHTML = users.map(u=>`
     <button class="user-btn ${selUserId===u.id?'selected':''}" onclick="selUser('${u.id}')">
       <div class="user-avatar" style="background:${u.color||ROL_CLR[u.rol]}">${u.emoji}</div>
       <div style="font-size:12px;color:#fff">${u.nombre}</div>
