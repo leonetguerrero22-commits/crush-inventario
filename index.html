@@ -252,7 +252,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro)
   <div class="login-card">
     <h2>Bienvenido</h2>
     <p>Selecciona tu usuario e ingresa tu PIN</p>
-    <div class="user-grid" id="user-grid"></div>
+    <div class="user-grid" id="user-grid">
+  <button class="user-btn" onclick="selUser('u1')">
+    <div class="user-avatar" style="background:#B71C1C">👑</div>
+    <div style="font-size:12px;color:#fff">Admin</div>
+    <div class="user-role-badge" style="background:#B71C1C33;color:#B71C1C">👑 Admin</div>
+  </button>
+  <button class="user-btn" onclick="selUser('u2')">
+    <div class="user-avatar" style="background:#1565C0">🔑</div>
+    <div style="font-size:12px;color:#fff">Supervisor</div>
+    <div class="user-role-badge" style="background:#1565C033;color:#1565C0">🔑 Supervisor</div>
+  </button>
+  <button class="user-btn" onclick="selUser('u3')">
+    <div class="user-avatar" style="background:#2E7D32">☕</div>
+    <div style="font-size:12px;color:#fff">Empleado 1</div>
+    <div class="user-role-badge" style="background:#2E7D3233;color:#2E7D32">👷 Empleado</div>
+  </button>
+</div>
     <div id="pin-section" style="display:none">
       <div class="pin-label">PIN de 4 dígitos</div>
       <div class="pin-dots">
