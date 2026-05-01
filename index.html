@@ -23,6 +23,64 @@
 html,body{height:100%;overflow:hidden;}
 body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro);overscroll-behavior:none;}
 
+
+/* ── CIERRE DIARIO ── */
+.cierre-card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #ece6db;}
+.cierre-title{font-size:13px;font-weight:700;color:#1F4E79;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.cierre-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f0ece4;font-size:12px;}
+.cierre-row:last-child{border-bottom:none;}
+.cierre-label{color:#555;flex:1;}
+.cierre-inp{width:80px;text-align:right;border:1px solid #ddd;border-radius:8px;padding:4px 8px;font-size:12px;font-family:inherit;background:#fafafa;}
+.cierre-inp:focus{outline:none;border-color:#1F4E79;background:#fff;}
+.cierre-val{font-weight:600;color:#111;min-width:60px;text-align:right;}
+.btn-cierre{width:100%;padding:14px;border-radius:14px;border:none;background:#1F4E79;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;font-family:inherit;transition:opacity .2s;}
+.btn-cierre:active{opacity:.8;}
+.btn-cierre.verde{background:#1E5631;}
+.hist-day{background:#fff;border-radius:14px;margin-bottom:10px;overflow:hidden;border:1px solid #ece6db;}
+.hist-day-hdr{padding:12px 14px;background:#1F4E79;color:#fff;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+.hist-day-body{padding:12px 14px;display:none;}
+.hist-day-body.open{display:block;}
+.hist-stat{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid #f0ece4;}
+.hist-stat:last-child{border-bottom:none;}
+.turno-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;margin-right:6px;}
+.turno-a{background:#BDD7EE;color:#1F4E79;}
+.turno-c{background:#C6EFCE;color:#1E5631;}
+.fecha-selector{display:flex;gap:8px;margin-bottom:14px;align-items:center;}
+.fecha-selector input{flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:10px;font-size:13px;font-family:inherit;}
+.cierre-resumen{background:#f8f4ee;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12px;}
+.cierre-resumen-row{display:flex;justify-content:space-between;padding:3px 0;}
+
+
+/* ── REPORTES / GRAFICAS ── */
+.rep-card{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #ece6db;}
+.rep-title{font-size:13px;font-weight:700;color:#1F4E79;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.bar-wrap{display:flex;flex-direction:column;gap:6px;}
+.bar-row{display:flex;align-items:center;gap:8px;font-size:11px;}
+.bar-label{min-width:110px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;height:14px;background:#f0ece4;border-radius:7px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:7px;transition:width .6s ease;}
+.bar-val{min-width:36px;text-align:right;font-weight:700;color:#111;font-size:11px;}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.kpi-box{background:#fff;border-radius:12px;padding:12px;border:1px solid #ece6db;text-align:center;}
+.kpi-val{font-size:22px;font-weight:700;color:#1F4E79;}
+.kpi-lbl{font-size:10px;color:#888;margin-top:2px;}
+/* PRECIOS / MÁRGENES */
+.precio-row{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid #f0ece4;font-size:12px;}
+.precio-row:last-child{border-bottom:none;}
+.precio-nom{flex:1;color:#333;}
+.precio-inp{width:68px;border:1px solid #ddd;border-radius:8px;padding:4px 6px;font-size:12px;text-align:right;font-family:inherit;}
+.precio-inp:focus{outline:none;border-color:#1F4E79;}
+.margen-badge{min-width:52px;text-align:right;font-weight:700;font-size:11px;padding:2px 6px;border-radius:10px;}
+.margen-ok{background:#C6EFCE;color:#1E5631;}
+.margen-med{background:#FFF3CD;color:#856404;}
+.margen-low{background:#FFCCCC;color:#B71C1C;}
+/* NOTIFICACIONES STOCK */
+.notif-bar{background:#E65100;color:#fff;padding:10px 14px;border-radius:12px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;}
+.notif-bar.verde{background:#1E5631;}
+/* WHATSAPP REPORT */
+.wa-btn{display:flex;align-items:center;gap:8px;background:#25D366;color:#fff;border:none;border-radius:12px;padding:12px 18px;font-size:13px;font-weight:700;cursor:pointer;width:100%;justify-content:center;margin-top:10px;font-family:inherit;}
+.wa-btn:active{opacity:.85;}
+
 /* ── SPLASH ── */
 #splash{position:fixed;inset:0;background:var(--negro);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;}
 .splash-logo{font-family:'Playfair Display',serif;font-size:56px;font-weight:900;color:var(--dorado);letter-spacing:4px;text-shadow:0 0 40px rgba(212,168,67,.3);}
@@ -367,6 +425,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro)
       <div class="chips" id="chips-mermas"></div>
       <div id="lista-mermas"></div>
     </div>
+    <!-- REPORTES -->
+    <div id="tab-reportes" class="tab-panel">
+      <div class="sec-hdr">📊 Reportes & <span>Analítica</span></div>
+      <div id="reportes-content" style="padding:0 0 120px"></div>
+    </div>
+    <!-- CIERRE DIARIO -->
+    <div id="tab-cierre" class="tab-panel">
+      <div class="sec-hdr">📅 Cierre <span>Diario</span></div>
+      <div id="cierre-content" style="padding:0 0 120px"></div>
+    </div>
+    <!-- HISTORIAL -->
+    <div id="tab-historial" class="tab-panel">
+      <div class="sec-hdr">📆 Historial <span>por Fecha</span></div>
+      <div id="historial-content" style="padding:0 0 120px"></div>
+    </div>
   </div>
 </div>
 
@@ -377,6 +450,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro)
   <button class="nav-btn" id="nav-terminados" onclick="goTab('terminados')"><span class="nav-wrap"><span class="nav-icon">🛍</span><span class="nbadge" id="badge-prod">0</span></span>Productos</button>
   <button class="nav-btn" id="nav-mermas" onclick="goTab('mermas')"><span class="nav-icon">⚠️</span>Mermas</button>
   <button class="nav-btn" id="nav-bitacora" onclick="goTab('bitacora')"><span class="nav-icon">📋</span>Bitácora</button>
+  <button class="nav-btn" id="nav-reportes" onclick="goTab('reportes')"><span class="nav-icon">📊</span>Reportes</button>
+  <button class="nav-btn" id="nav-cierre" onclick="goTab('cierre')"><span class="nav-icon">📅</span>Cierre</button>
+  <button class="nav-btn" id="nav-historial" onclick="goTab('historial')"><span class="nav-icon">📆</span>Historial</button>
   <button class="nav-btn" id="nav-usuarios" onclick="goTab('usuarios')" style="display:none"><span class="nav-icon">👥</span>Usuarios</button>
 </div>
 
@@ -493,6 +569,233 @@ const CAT_CLR = {
   'Sandwiches':'#4caf50','Frío':'#03a9f4',
 };
 const ACT_ICO = {add:'➕',edit:'✏️',del:'🗑️',reset:'🔄',login:'🔐',logout:'👋'};
+
+// ── CIERRE DIARIO & HISTORIAL ─────────────────────────────────────────────────
+
+function hoy(){ return new Date().toISOString().split('T')[0]; }
+function fmtFecha(d){ return new Date(d+'T00:00:00').toLocaleDateString('es-VE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+
+function renderCierre(){
+  const el = document.getElementById('cierre-content');
+  const fecha = hoy();
+  const ins = S.insumos;
+  const prod = S.productos;
+  const mermasHoy = (S.mermas||[]).filter(m=>m.fecha===fecha);
+  const perdidaHoy = mermasHoy.reduce((s,m)=>s+(m.perdidaTotal||0),0);
+
+  // Check if cierre already done today
+  const cierres = S.cierres || {};
+  const cierreHoy = cierres[fecha.replace(/-/g,'_')];
+
+  el.innerHTML = `
+    <div style="padding:12px 0 0">
+      <div class="cierre-card">
+        <div class="cierre-title">📅 ${fmtFecha(fecha)}</div>
+        <div class="cierre-resumen">
+          <div class="cierre-resumen-row"><span>Mermas registradas hoy</span><span><b>${mermasHoy.length}</b></span></div>
+          <div class="cierre-resumen-row"><span>Pérdida estimada hoy</span><span><b style="color:#B71C1C">${fmt$(perdidaHoy)}</b></span></div>
+          <div class="cierre-resumen-row"><span>Items bajo stock mínimo</span><span><b>${ins.filter(i=>i.cant<=i.min).length} insumos / ${prod.filter(p=>(p.prod-p.vend)<=p.min).length} productos</b></span></div>
+        </div>
+        ${cierreHoy ? `<div style="background:#C6EFCE;border-radius:10px;padding:10px;text-align:center;font-size:13px;color:#1E5631;font-weight:700;margin-bottom:8px">✅ Cierre de apertura registrado · ${cierreHoy.usuario || ''}</div>` : ''}
+      </div>
+
+      <!-- APERTURA / TURNO MAÑANA -->
+      <div class="cierre-card">
+        <div class="cierre-title">🌅 Registro de Apertura (Turno mañana)</div>
+        <div id="rows-apertura">
+          ${ins.slice(0,8).map(i=>`
+          <div class="cierre-row">
+            <span class="cierre-label">${i.nombre}</span>
+            <input class="cierre-inp" id="ap-${i.id}" type="number" placeholder="${i.cant}" min="0" value="">
+            <span style="font-size:10px;color:#999;margin-left:4px">${i.unidad}</span>
+          </div>`).join('')}
+          <div style="text-align:center;margin-top:6px">
+            <button onclick="toggleAperturaFull()" id="btn-ver-mas" style="background:none;border:1px solid #ddd;border-radius:8px;padding:5px 14px;font-size:12px;cursor:pointer;color:#555">Ver todos los insumos ▼</button>
+          </div>
+          <div id="apertura-extra" style="display:none">
+            ${ins.slice(8).map(i=>`
+            <div class="cierre-row">
+              <span class="cierre-label">${i.nombre}</span>
+              <input class="cierre-inp" id="ap-${i.id}" type="number" placeholder="${i.cant}" min="0" value="">
+              <span style="font-size:10px;color:#999;margin-left:4px">${i.unidad}</span>
+            </div>`).join('')}
+          </div>
+        </div>
+        <input id="ap-obs" placeholder="Observaciones de apertura..." style="width:100%;border:1px solid #ddd;border-radius:10px;padding:8px 12px;font-size:12px;margin-top:10px;font-family:inherit;">
+        <button class="btn-cierre" onclick="guardarApertura()">💾 Guardar Apertura</button>
+      </div>
+
+      <!-- CIERRE / TURNO TARDE -->
+      <div class="cierre-card">
+        <div class="cierre-title">🌙 Registro de Cierre (Turno tarde)</div>
+        ${prod.map(p=>`
+        <div class="cierre-row">
+          <span class="cierre-label">${p.nombre}<br><span style="font-size:10px;color:#999">${p.variante}</span></span>
+          <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+            <input class="cierre-inp" id="ci-prod-${p.id}" type="number" placeholder="Prod: ${p.prod}" min="0" value="" title="Producido">
+            <input class="cierre-inp" id="ci-vend-${p.id}" type="number" placeholder="Vend: ${p.vend}" min="0" value="" title="Vendido">
+          </div>
+        </div>`).join('')}
+        <div style="font-size:10px;color:#999;text-align:center;margin:4px 0 8px">Primer campo = producido · Segundo = vendido</div>
+        <input id="ci-obs" placeholder="Observaciones de cierre..." style="width:100%;border:1px solid #ddd;border-radius:10px;padding:8px 12px;font-size:12px;margin-top:4px;font-family:inherit;">
+        <button class="btn-cierre verde" onclick="guardarCierre()">✅ Registrar Cierre del Día</button>
+      </div>
+    </div>`;
+}
+
+function toggleAperturaFull(){
+  const ex = document.getElementById('apertura-extra');
+  const btn = document.getElementById('btn-ver-mas');
+  if(ex.style.display==='none'){ex.style.display='block';btn.textContent='Ver menos ▲';}
+  else{ex.style.display='none';btn.textContent='Ver todos los insumos ▼';}
+}
+
+async function guardarApertura(){
+  const fecha = hoy();
+  const key = fecha.replace(/-/g,'_');
+  const snap = {};
+  S.insumos.forEach(i=>{
+    const el = document.getElementById('ap-'+i.id);
+    if(el && el.value!=='') snap[i.id]={nombre:i.nombre,unidad:i.unidad,cantidad:parseFloat(el.value)};
+  });
+  const obs = document.getElementById('ap-obs')?.value || '';
+  const data = {
+    fecha, turno:'apertura',
+    usuario: currentUser?.nombre || 'Desconocido',
+    timestamp: Date.now(),
+    insumos: snap,
+    observaciones: obs,
+  };
+  const ref = db ? firebase.database().ref('cierres/'+key+'/apertura') : null;
+  if(ref) await ref.set(data);
+  // Also save locally
+  if(!S.cierres) S.cierres = {};
+  if(!S.cierres[key]) S.cierres[key] = {};
+  S.cierres[key].apertura = data;
+  S.cierres[key].usuario = currentUser?.nombre;
+  // Log
+  logAction('cierre_apertura', `Apertura registrada para ${fecha}`);
+  alert('✅ Apertura guardada correctamente');
+  renderCierre();
+}
+
+async function guardarCierre(){
+  const fecha = hoy();
+  const key = fecha.replace(/-/g,'_');
+  const snapProd = {};
+  S.productos.forEach(p=>{
+    const ep = document.getElementById('ci-prod-'+p.id);
+    const ev = document.getElementById('ci-vend-'+p.id);
+    const prod = ep && ep.value!=='' ? parseFloat(ep.value) : p.prod;
+    const vend = ev && ev.value!=='' ? parseFloat(ev.value) : p.vend;
+    snapProd[p.id]={nombre:p.nombre,variante:p.variante,prod,vend,stock:prod-vend};
+    // Update live stock
+    p.prod = prod; p.vend = vend;
+  });
+  const mermasHoy = (S.mermas||[]).filter(m=>m.fecha===fecha);
+  const perdidaHoy = mermasHoy.reduce((s,m)=>s+(m.perdidaTotal||0),0);
+  const obs = document.getElementById('ci-obs')?.value || '';
+  const data = {
+    fecha, turno:'cierre',
+    usuario: currentUser?.nombre || 'Desconocido',
+    timestamp: Date.now(),
+    productos: snapProd,
+    mermasCount: mermasHoy.length,
+    perdidaTotal: perdidaHoy,
+    observaciones: obs,
+    stockInsumos: Object.fromEntries(S.insumos.map(i=>[i.id,{nombre:i.nombre,cant:i.cant,unidad:i.unidad}])),
+  };
+  const ref = db ? firebase.database().ref('cierres/'+key+'/cierre') : null;
+  if(ref) await ref.set(data);
+  if(!S.cierres) S.cierres = {};
+  if(!S.cierres[key]) S.cierres[key] = {};
+  S.cierres[key].cierre = data;
+  // Update productos in firebase
+  if(db){ S.productos.forEach(p=>{ firebase.database().ref('productos/'+p.id).update({prod:p.prod,vend:p.vend}); }); }
+  logAction('cierre_dia', `Cierre del día ${fecha} registrado`);
+  alert('✅ Cierre del día guardado. ¡Buen trabajo!');
+  renderCierre();
+}
+
+// ── HISTORIAL ─────────────────────────────────────────────────────────────────
+async function renderHistorial(){
+  const el = document.getElementById('historial-content');
+  el.innerHTML = `<div style="padding:12px 0">
+    <div class="fecha-selector">
+      <input type="month" id="hist-mes" value="${hoy().slice(0,7)}" onchange="filtrarHistorial()">
+      <button onclick="filtrarHistorial()" style="padding:8px 14px;border-radius:10px;border:1px solid #ddd;background:#1F4E79;color:#fff;font-size:13px;cursor:pointer">Buscar</button>
+    </div>
+    <div id="hist-lista">Cargando historial...</div>
+  </div>`;
+
+  // Load from firebase
+  let cierres = S.cierres || {};
+  if(db){
+    try{
+      const snap = await firebase.database().ref('cierres').once('value');
+      cierres = snap.val() || {};
+      S.cierres = cierres;
+    }catch(e){}
+  }
+  renderHistorialLista(cierres, hoy().slice(0,7));
+}
+
+function filtrarHistorial(){
+  const mes = document.getElementById('hist-mes')?.value || hoy().slice(0,7);
+  renderHistorialLista(S.cierres || {}, mes);
+}
+
+function renderHistorialLista(cierres, mes){
+  const lista = document.getElementById('hist-lista');
+  if(!lista) return;
+  const keys = Object.keys(cierres)
+    .filter(k => k.startsWith(mes.replace('-','_')))
+    .sort().reverse();
+  if(!keys.length){
+    lista.innerHTML = `<div class="empty"><div class="empty-ico">📅</div><div class="empty-txt">Sin registros para este mes</div></div>`;
+    return;
+  }
+  lista.innerHTML = keys.map(k=>{
+    const d = cierres[k];
+    const fecha = k.replace(/_/g,'-');
+    const ap = d.apertura;
+    const ci = d.cierre;
+    const totalVend = ci ? Object.values(ci.productos||{}).reduce((s,p)=>s+p.vend,0) : '-';
+    const perdida = ci ? fmt$(ci.perdidaTotal||0) : '-';
+    return `
+    <div class="hist-day">
+      <div class="hist-day-hdr" onclick="toggleHistDay('${k}')">
+        <span>${fmtFecha(fecha)}</span>
+        <span style="font-size:11px;opacity:.8">${ci?'Cierre ✅':ap?'Apertura 🌅':'Sin datos'}</span>
+      </div>
+      <div class="hist-day-body" id="hd-${k}">
+        ${ap?`<div style="margin-bottom:8px"><span class="turno-badge turno-a">APERTURA</span><span style="font-size:11px;color:#555">por ${ap.usuario}</span>
+          ${ap.observaciones?`<div style="font-size:11px;color:#777;margin-top:3px;font-style:italic">"${ap.observaciones}"</div>`:''}
+          <div style="margin-top:6px">
+            ${Object.values(ap.insumos||{}).slice(0,5).map(i=>`
+            <div class="hist-stat"><span>${i.nombre}</span><span><b>${i.cantidad} ${i.unidad}</b></span></div>`).join('')}
+            ${Object.keys(ap.insumos||{}).length>5?`<div style="font-size:11px;color:#999;text-align:center">+${Object.keys(ap.insumos).length-5} más</div>`:''}
+          </div>
+        </div>`:'<div style="font-size:12px;color:#999;margin-bottom:6px">Sin apertura registrada</div>'}
+        ${ci?`<div><span class="turno-badge turno-c">CIERRE</span><span style="font-size:11px;color:#555">por ${ci.usuario}</span>
+          <div class="hist-stat" style="margin-top:6px"><span>Total vendido</span><span><b>${totalVend} unidades</b></span></div>
+          <div class="hist-stat"><span>Mermas</span><span><b>${ci.mermasCount} registros</b></span></div>
+          <div class="hist-stat"><span>Pérdida estimada</span><span><b style="color:#B71C1C">${perdida}</b></span></div>
+          ${ci.observaciones?`<div style="font-size:11px;color:#777;margin-top:4px;font-style:italic">"${ci.observaciones}"</div>`:''}
+          <div style="margin-top:8px;font-size:11px;font-weight:700;color:#1F4E79">Stock de productos al cierre:</div>
+          ${Object.values(ci.productos||{}).map(p=>`
+          <div class="hist-stat"><span>${p.nombre} · ${p.variante}</span><span>Prod:<b>${p.prod}</b> Vend:<b>${p.vend}</b> Stock:<b>${p.stock}</b></span></div>`).join('')}
+        </div>`:'<div style="font-size:12px;color:#999">Sin cierre registrado</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleHistDay(k){
+  const el = document.getElementById('hd-'+k);
+  if(el) el.classList.toggle('open');
+}
+
 </script>
 
 <!-- Firebase via jsDelivr CDN — funciona en GitHub Pages, Safari y Chrome -->
@@ -500,7 +803,7 @@ const ACT_ICO = {add:'➕',edit:'✏️',del:'🗑️',reset:'🔄',login:'🔐'
 <script src="https://cdn.jsdelivr.net/npm/firebase@9.23.0/firebase-database-compat.min.js"></script>
 
 <script>
-// ── CONFIG CRUSH ──────────────────────────────────────────────────────────────
+// ── CONFIG CRUSH — REEMPLAZA ESTOS VALORES CON TU FIREBASE ──────────────
 const firebaseConfig = {
   apiKey: "AIzaSyBnnFiZ3PPEnhhSKJGdMaciJsFoB7hGlhg",
   authDomain: "inventario-crush.firebaseapp.com",
@@ -615,60 +918,60 @@ const DEF_INS = [
   {id:'i75',nombre:"Esponja / estropajo",cat:"Limpieza",unidad:"Paq",min:3,max:10,cant:0,costo:0},
 ];
 const DEF_PROD = [
-  {id:'p1',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Clásico",min:2,prod:0,vend:0,precio:0},
-  {id:'p2',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Arequipe",min:2,prod:0,vend:0,precio:0},
-  {id:'p3',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Oreo",min:2,prod:0,vend:0,precio:0},
-  {id:'p4',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Galleta",min:2,prod:0,vend:0,precio:0},
-  {id:'p5',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Nutella",min:2,prod:0,vend:0,precio:0},
-  {id:'p6',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Frutos Rojos",min:2,prod:0,vend:0,precio:0},
-  {id:'p7',nombre:"Cinnamon Roll Mini",cat:"Rolls",variante:"Clásico x3",min:3,prod:0,vend:0,precio:0},
-  {id:'p8',nombre:"Cinnamon Roll Mini",cat:"Rolls",variante:"Arequipe x3",min:3,prod:0,vend:0,precio:0},
-  {id:'p9',nombre:"Cinnamon Roll Mini",cat:"Rolls",variante:"Oreo x3",min:3,prod:0,vend:0,precio:0},
-  {id:'p10',nombre:"Cinnamon Roll Mini",cat:"Rolls",variante:"Nutella x3",min:3,prod:0,vend:0,precio:0},
-  {id:'p11',nombre:"Cinnamon Roll Mini",cat:"Rolls",variante:"Frutos Rojos x3",min:3,prod:0,vend:0,precio:0},
-  {id:'p12',nombre:"Golfeado",cat:"Rolls",variante:"Clásico",min:3,prod:0,vend:0,precio:0},
-  {id:'p13',nombre:"Golfeado",cat:"Rolls",variante:"Con Queso",min:3,prod:0,vend:0,precio:0},
-  {id:'p14',nombre:"Cachito",cat:"Panadería",variante:"Clásico (Jamón)",min:5,prod:0,vend:0,precio:0},
-  {id:'p15',nombre:"Cachito",cat:"Panadería",variante:"Jamón pavo/Q.crema",min:3,prod:0,vend:0,precio:0},
-  {id:'p16',nombre:"Cachito",cat:"Panadería",variante:"Jamón/Mozzarella",min:3,prod:0,vend:0,precio:0},
-  {id:'p17',nombre:"Cachito",cat:"Panadería",variante:"Jamón/Q.amarillo",min:3,prod:0,vend:0,precio:0},
-  {id:'p18',nombre:"Cachito",cat:"Panadería",variante:"Mortadela italiana",min:3,prod:0,vend:0,precio:0},
-  {id:'p19',nombre:"Cachito",cat:"Panadería",variante:"Ricota y Espinaca",min:2,prod:0,vend:0,precio:0},
-  {id:'p20',nombre:"Cachito",cat:"Panadería",variante:"Tocineta/Q.amarillo",min:2,prod:0,vend:0,precio:0},
-  {id:'p21',nombre:"Cachito",cat:"Panadería",variante:"4 Quesos",min:2,prod:0,vend:0,precio:0},
-  {id:'p22',nombre:"Galleta NY 120gr",cat:"Galletas",variante:"Chocolate Savoy",min:5,prod:0,vend:0,precio:0},
-  {id:'p23',nombre:"Galleta NY 120gr",cat:"Galletas",variante:"Red Velvet",min:5,prod:0,vend:0,precio:0},
-  {id:'p24',nombre:"Galleta NY 120gr",cat:"Galletas",variante:"Toronto",min:5,prod:0,vend:0,precio:0},
-  {id:'p25',nombre:"Galleta NY 120gr",cat:"Galletas",variante:"Oreo",min:5,prod:0,vend:0,precio:0},
-  {id:'p26',nombre:"Galleta NY 120gr",cat:"Galletas",variante:"Pistacho",min:5,prod:0,vend:0,precio:0},
-  {id:'p27',nombre:"Pastelito",cat:"Panadería",variante:"Queso Guayanes",min:5,prod:0,vend:0,precio:0},
-  {id:'p28',nombre:"Pastelito",cat:"Panadería",variante:"Jamón/Q.Guayanes",min:5,prod:0,vend:0,precio:0},
-  {id:'p29',nombre:"Pastelito",cat:"Panadería",variante:"Pollo",min:5,prod:0,vend:0,precio:0},
-  {id:'p30',nombre:"Pastelito",cat:"Panadería",variante:"Mechada",min:5,prod:0,vend:0,precio:0},
-  {id:'p31',nombre:"Pastelito",cat:"Panadería",variante:"Molida",min:5,prod:0,vend:0,precio:0},
-  {id:'p32',nombre:"Torta de Chocolate",cat:"Postres",variante:"Porción",min:2,prod:0,vend:0,precio:0},
-  {id:'p33',nombre:"Torta Red Velvet",cat:"Postres",variante:"Porción",min:2,prod:0,vend:0,precio:0},
-  {id:'p34',nombre:"Cheesecake Fresa",cat:"Postres",variante:"Porción",min:2,prod:0,vend:0,precio:0},
-  {id:'p35',nombre:"Cheesecake Parchita",cat:"Postres",variante:"Porción",min:2,prod:0,vend:0,precio:0},
-  {id:'p36',nombre:"Galletón de Nutella",cat:"Postres",variante:"Unidad",min:3,prod:0,vend:0,precio:0},
-  {id:'p37',nombre:"Quesillo",cat:"Postres",variante:"Porción",min:2,prod:0,vend:0,precio:0},
-  {id:'p38',nombre:"Sandwich Sub - Atún",cat:"Sandwiches",variante:"Sub",min:2,prod:0,vend:0,precio:0},
-  {id:'p39',nombre:"Sandwich Sub - Roast Beef",cat:"Sandwiches",variante:"Sub",min:2,prod:0,vend:0,precio:0},
-  {id:'p40',nombre:"Sandwich Sub - Pollo",cat:"Sandwiches",variante:"Sub",min:2,prod:0,vend:0,precio:0},
-  {id:'p41',nombre:"Sandwich Sub - Pastrami",cat:"Sandwiches",variante:"Sub",min:2,prod:0,vend:0,precio:0},
-  {id:'p42',nombre:"Sandwich Sub - Italiano",cat:"Sandwiches",variante:"Sub",min:2,prod:0,vend:0,precio:0},
-  {id:'p43',nombre:"Expresso",cat:"Café",variante:"Pequeño/Grande",min:0,prod:0,vend:0,precio:0},
-  {id:'p44',nombre:"Café Con Leche",cat:"Café",variante:"Pequeño/Grande",min:0,prod:0,vend:0,precio:0},
-  {id:'p45',nombre:"Latte Vainilla",cat:"Café",variante:"Pequeño/Grande",min:0,prod:0,vend:0,precio:0},
-  {id:'p46',nombre:"Cappuccino",cat:"Café",variante:"Pequeño/Grande",min:0,prod:0,vend:0,precio:0},
-  {id:'p47',nombre:"Mocaccino",cat:"Café",variante:"Pequeño/Grande",min:0,prod:0,vend:0,precio:0},
-  {id:'p48',nombre:"Frapuccino",cat:"Frío",variante:"Café/Fresa/Oreo",min:0,prod:0,vend:0,precio:0},
-  {id:'p49',nombre:"Merengada",cat:"Frío",variante:"Fresa/Parchita/Cerecal",min:0,prod:0,vend:0,precio:0},
-  {id:'p50',nombre:"Batido",cat:"Frío",variante:"Fresa/Mango/Mora",min:0,prod:0,vend:0,precio:0},
-  {id:'p51',nombre:"Agua Mineral",cat:"Bebidas",variante:"Unidad",min:6,prod:0,vend:0,precio:0},
-  {id:'p52',nombre:"Nestea",cat:"Bebidas",variante:"Unidad",min:6,prod:0,vend:0,precio:0},
-  {id:'p53',nombre:"Refresco 355ml",cat:"Bebidas",variante:"Unidad",min:6,prod:0,vend:0,precio:0},
-  {id:'p54',nombre:"Malta",cat:"Bebidas",variante:"Unidad",min:6,prod:0,vend:0,precio:0},
+  {id:'p1',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Clásico",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p2',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Arequipe",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p3',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Oreo",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p4',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Galleta",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p5',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Nutella",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p6',nombre:"Cinnamon Roll Grande",cat:"Rolls",variante:"Frutos Rojos",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p7',nombre:"Cinnamon Roll Mini",cat:"Rolls",variante:"Clásico x3",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p8',nombre:"Cinnamon Roll Mini",cat:"Rolls",variante:"Arequipe x3",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p9',nombre:"Cinnamon Roll Mini",cat:"Rolls",variante:"Oreo x3",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p10',nombre:"Cinnamon Roll Mini",cat:"Rolls",variante:"Nutella x3",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p11',nombre:"Cinnamon Roll Mini",cat:"Rolls",variante:"Frutos Rojos x3",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p12',nombre:"Golfeado",cat:"Rolls",variante:"Clásico",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p13',nombre:"Golfeado",cat:"Rolls",variante:"Con Queso",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p14',nombre:"Cachito",cat:"Panadería",variante:"Clásico (Jamón)",min:5,prod:0,vend:0,precio:0,costo:0},
+  {id:'p15',nombre:"Cachito",cat:"Panadería",variante:"Jamón pavo/Q.crema",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p16',nombre:"Cachito",cat:"Panadería",variante:"Jamón/Mozzarella",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p17',nombre:"Cachito",cat:"Panadería",variante:"Jamón/Q.amarillo",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p18',nombre:"Cachito",cat:"Panadería",variante:"Mortadela italiana",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p19',nombre:"Cachito",cat:"Panadería",variante:"Ricota y Espinaca",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p20',nombre:"Cachito",cat:"Panadería",variante:"Tocineta/Q.amarillo",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p21',nombre:"Cachito",cat:"Panadería",variante:"4 Quesos",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p22',nombre:"Galleta NY 120gr",cat:"Galletas",variante:"Chocolate Savoy",min:5,prod:0,vend:0,precio:0,costo:0},
+  {id:'p23',nombre:"Galleta NY 120gr",cat:"Galletas",variante:"Red Velvet",min:5,prod:0,vend:0,precio:0,costo:0},
+  {id:'p24',nombre:"Galleta NY 120gr",cat:"Galletas",variante:"Toronto",min:5,prod:0,vend:0,precio:0,costo:0},
+  {id:'p25',nombre:"Galleta NY 120gr",cat:"Galletas",variante:"Oreo",min:5,prod:0,vend:0,precio:0,costo:0},
+  {id:'p26',nombre:"Galleta NY 120gr",cat:"Galletas",variante:"Pistacho",min:5,prod:0,vend:0,precio:0,costo:0},
+  {id:'p27',nombre:"Pastelito",cat:"Panadería",variante:"Queso Guayanes",min:5,prod:0,vend:0,precio:0,costo:0},
+  {id:'p28',nombre:"Pastelito",cat:"Panadería",variante:"Jamón/Q.Guayanes",min:5,prod:0,vend:0,precio:0,costo:0},
+  {id:'p29',nombre:"Pastelito",cat:"Panadería",variante:"Pollo",min:5,prod:0,vend:0,precio:0,costo:0},
+  {id:'p30',nombre:"Pastelito",cat:"Panadería",variante:"Mechada",min:5,prod:0,vend:0,precio:0,costo:0},
+  {id:'p31',nombre:"Pastelito",cat:"Panadería",variante:"Molida",min:5,prod:0,vend:0,precio:0,costo:0},
+  {id:'p32',nombre:"Torta de Chocolate",cat:"Postres",variante:"Porción",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p33',nombre:"Torta Red Velvet",cat:"Postres",variante:"Porción",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p34',nombre:"Cheesecake Fresa",cat:"Postres",variante:"Porción",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p35',nombre:"Cheesecake Parchita",cat:"Postres",variante:"Porción",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p36',nombre:"Galletón de Nutella",cat:"Postres",variante:"Unidad",min:3,prod:0,vend:0,precio:0,costo:0},
+  {id:'p37',nombre:"Quesillo",cat:"Postres",variante:"Porción",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p38',nombre:"Sandwich Sub - Atún",cat:"Sandwiches",variante:"Sub",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p39',nombre:"Sandwich Sub - Roast Beef",cat:"Sandwiches",variante:"Sub",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p40',nombre:"Sandwich Sub - Pollo",cat:"Sandwiches",variante:"Sub",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p41',nombre:"Sandwich Sub - Pastrami",cat:"Sandwiches",variante:"Sub",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p42',nombre:"Sandwich Sub - Italiano",cat:"Sandwiches",variante:"Sub",min:2,prod:0,vend:0,precio:0,costo:0},
+  {id:'p43',nombre:"Expresso",cat:"Café",variante:"Pequeño/Grande",min:0,prod:0,vend:0,precio:0,costo:0},
+  {id:'p44',nombre:"Café Con Leche",cat:"Café",variante:"Pequeño/Grande",min:0,prod:0,vend:0,precio:0,costo:0},
+  {id:'p45',nombre:"Latte Vainilla",cat:"Café",variante:"Pequeño/Grande",min:0,prod:0,vend:0,precio:0,costo:0},
+  {id:'p46',nombre:"Cappuccino",cat:"Café",variante:"Pequeño/Grande",min:0,prod:0,vend:0,precio:0,costo:0},
+  {id:'p47',nombre:"Mocaccino",cat:"Café",variante:"Pequeño/Grande",min:0,prod:0,vend:0,precio:0,costo:0},
+  {id:'p48',nombre:"Frapuccino",cat:"Frío",variante:"Café/Fresa/Oreo",min:0,prod:0,vend:0,precio:0,costo:0},
+  {id:'p49',nombre:"Merengada",cat:"Frío",variante:"Fresa/Parchita/Cerecal",min:0,prod:0,vend:0,precio:0,costo:0},
+  {id:'p50',nombre:"Batido",cat:"Frío",variante:"Fresa/Mango/Mora",min:0,prod:0,vend:0,precio:0,costo:0},
+  {id:'p51',nombre:"Agua Mineral",cat:"Bebidas",variante:"Unidad",min:6,prod:0,vend:0,precio:0,costo:0},
+  {id:'p52',nombre:"Nestea",cat:"Bebidas",variante:"Unidad",min:6,prod:0,vend:0,precio:0,costo:0},
+  {id:'p53',nombre:"Refresco 355ml",cat:"Bebidas",variante:"Unidad",min:6,prod:0,vend:0,precio:0,costo:0},
+  {id:'p54',nombre:"Malta",cat:"Bebidas",variante:"Unidad",min:6,prod:0,vend:0,precio:0,costo:0},
 ];
 
 // ── STATE ────────────────────────────────────────────────────────────────────
@@ -761,6 +1064,12 @@ function subscribeAll(){
     S.mermas = Object.values(raw).sort((a,b)=>b.ts-a.ts);
     if(currentTab==='mermas') renderMermas();
     if(currentTab==='dashboard') renderDash();
+  }));
+  // Cierres diarios
+  listeners.push(onValue(ref(db,'cierres'), snap=>{
+    S.cierres = snap.exists() ? snap.val() : {};
+    if(currentTab==='historial') renderHistorial();
+    if(currentTab==='cierre') renderCierre();
   }));
 }
 
@@ -904,6 +1213,9 @@ window.goTab = function(tab){
   if(tab==='mermas') renderMermas();
   if(tab==='bitacora') renderLog();
   if(tab==='usuarios') renderUsuariosMgmt();
+  if(tab==='cierre') renderCierre();
+  if(tab==='reportes') renderReportes();
+  if(tab==='historial') renderHistorial();
   // Show/hide usuarios nav button based on role
   const unav = document.getElementById('nav-usuarios');
   const utab = document.getElementById('tab-btn-usuarios');
@@ -1201,7 +1513,7 @@ window.openAddModal = function(){
   } else {
     document.getElementById('modal-add-body').innerHTML=`
       <div class="field-col"><div class="flabel">Nombre del producto</div>
-        <input class="finput" id="an-nom" placeholder="Ej: Cinnamon Roll Especial"></div>
+        <input class="finput" id="an-nom" placeholder="Ej: Camarón al ajillo"></div>
       <div class="field-row" style="margin-top:10px">
         <div class="field-col"><div class="flabel">Categoría</div>
           <select class="fselect" id="an-cat">
@@ -1482,7 +1794,7 @@ window.exportData=function(){
   const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download=`crush_${new Date().toISOString().split('T')[0]}.json`;
+  a.href=url;a.download=`donCamaron_${new Date().toISOString().split('T')[0]}.json`;
   a.click();URL.revokeObjectURL(url);
   fbLog('edit','Exportó respaldo del inventario');
   showToast('💾 Respaldo descargado');
@@ -1509,6 +1821,243 @@ window.showToast=function(msg){
 
 // ── INICIO ───────────────────────────────────────────────────────────────────
 initDB();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE 1: REPORTES & GRÁFICAS
+// ══════════════════════════════════════════════════════════════════════════════
+function renderReportes(){
+  const el = document.getElementById('reportes-content');
+  if(!el) return;
+  const prod = S.productos;
+  const ins  = S.insumos;
+  const mermas = S.mermas || [];
+  const hoyStr = new Date().toDateString();
+
+  const totalVend    = prod.reduce(function(s,p){return s+p.vend;},0);
+  const totalIngreso = prod.reduce(function(s,p){return s+(p.vend*(p.precio||0));},0);
+  const mermasHoy    = mermas.filter(function(m){return new Date(m.ts).toDateString()===hoyStr;});
+  const perdidaHoy   = mermasHoy.reduce(function(s,m){return s+(m.perdidaTotal||0);},0);
+  const bajosIns     = ins.filter(function(i){return stIns(i)==='reponer';});
+  const bajosProd    = prod.filter(function(p){return stProd(p)==='reponer';});
+
+  var html = '<div style="padding:12px 0">';
+
+  // KPIs
+  html += '<div class="kpi-grid">';
+  html += '<div class="kpi-box"><div class="kpi-val">'+totalVend+'</div><div class="kpi-lbl">Unidades vendidas</div></div>';
+  html += '<div class="kpi-box"><div class="kpi-val" style="color:#1E5631">'+fmt$(totalIngreso)+'</div><div class="kpi-lbl">Ingresos estimados</div></div>';
+  html += '<div class="kpi-box"><div class="kpi-val" style="color:#E65100">'+(perdidaHoy>0?fmt$(perdidaHoy):'$0')+'</div><div class="kpi-lbl">Pérdida hoy</div></div>';
+  html += '<div class="kpi-box"><div class="kpi-val" style="color:#B71C1C">'+(bajosIns.length+bajosProd.length)+'</div><div class="kpi-lbl">Alertas de stock</div></div>';
+  html += '</div>';
+
+  // Top productos vendidos
+  var topProd = prod.slice().sort(function(a,b){return b.vend-a.vend;}).slice(0,8);
+  var maxVend  = topProd.length>0 ? topProd[0].vend||1 : 1;
+  var clrs = ['#1F4E79','#2E75B6','#4490C8','#5DAADA','#1E5631','#2E7D32','#E65100','#B71C1C'];
+  html += '<div class="rep-card"><div class="rep-title">🛍 Productos más vendidos</div><div class="bar-wrap">';
+  if(topProd.length===0){
+    html += '<div style="color:#999;font-size:12px;text-align:center">Sin datos de ventas aún</div>';
+  } else {
+    topProd.forEach(function(p,i){
+      var pct = Math.round((p.vend/maxVend)*100);
+      html += '<div class="bar-row">';
+      html += '<span class="bar-label" title="'+p.nombre+' · '+p.variante+'">'+p.nombre+'</span>';
+      html += '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+clrs[i%clrs.length]+'"></div></div>';
+      html += '<span class="bar-val">'+p.vend+'</span></div>';
+    });
+  }
+  html += '</div></div>';
+
+  // Insumos por valor
+  var topIns = ins.filter(function(i){return i.costo>0;}).slice().sort(function(a,b){return (b.cant*b.costo)-(a.cant*a.costo);}).slice(0,6);
+  var maxInsVal = topIns.length>0 ? topIns[0].cant*topIns[0].costo : 1;
+  html += '<div class="rep-card"><div class="rep-title">📦 Valor en inventario de insumos</div><div class="bar-wrap">';
+  if(topIns.length===0){
+    html += '<div style="color:#999;font-size:12px;text-align:center">Agrega costos a los insumos para ver esta gráfica</div>';
+  } else {
+    topIns.forEach(function(i){
+      var val = i.cant*i.costo;
+      var pct = Math.round((val/maxInsVal)*100);
+      html += '<div class="bar-row">';
+      html += '<span class="bar-label">'+i.nombre+'</span>';
+      html += '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:#1E5631"></div></div>';
+      html += '<span class="bar-val">'+fmt$(val)+'</span></div>';
+    });
+  }
+  html += '</div></div>';
+
+  // Mermas por tipo
+  var mCat = {};
+  mermas.forEach(function(m){ var k=m.tipo||'Otro'; mCat[k]=(mCat[k]||0)+1; });
+  var mCatArr = Object.keys(mCat).map(function(k){return [k,mCat[k]];}).sort(function(a,b){return b[1]-a[1];});
+  var maxMCat = mCatArr.length>0 ? mCatArr[0][1] : 1;
+  html += '<div class="rep-card"><div class="rep-title">⚠️ Mermas por tipo</div><div class="bar-wrap">';
+  if(mCatArr.length===0){
+    html += '<div style="color:#999;font-size:12px;text-align:center">Sin mermas registradas</div>';
+  } else {
+    mCatArr.forEach(function(e){
+      var pct = Math.round((e[1]/maxMCat)*100);
+      html += '<div class="bar-row"><span class="bar-label">'+e[0]+'</span>';
+      html += '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:#B71C1C"></div></div>';
+      html += '<span class="bar-val">'+e[1]+'</span></div>';
+    });
+  }
+  html += '</div></div>';
+
+  // WhatsApp button
+  html += '<div class="rep-card"><div class="rep-title">📲 Reporte semanal</div>';
+  html += '<p style="font-size:12px;color:#555;margin-bottom:8px">Genera un resumen y envíalo por WhatsApp al dueño o supervisor.</p>';
+  html += '<button class="wa-btn" onclick="enviarReporteWhatsApp()"><span style="font-size:18px">📲</span> Enviar por WhatsApp</button>';
+  html += '</div>';
+
+  // Precios section
+  html += '<div class="rep-card" id="precios-section">';
+  html += '<div class="rep-title">💰 Precios y márgenes <button onclick="guardarPrecios()" style="padding:5px 12px;border-radius:8px;border:none;background:#1F4E79;color:#fff;font-size:11px;cursor:pointer;font-family:inherit">Guardar</button></div>';
+  html += '<div style="font-size:11px;color:#888;margin-bottom:8px">Precio venta · Costo unitario · Margen</div>';
+  prod.forEach(function(p){
+    var margen = p.precio>0&&p.costo>0 ? Math.round(((p.precio-p.costo)/p.precio)*100) : null;
+    var mClass = margen===null ? 'margen-badge' : 'margen-badge '+(margen>=40?'margen-ok':margen>=20?'margen-med':'margen-low');
+    var mText  = margen!==null ? margen+'%' : '—';
+    html += '<div class="precio-row">';
+    html += '<span class="precio-nom">'+p.nombre+'<br><span style="font-size:10px;color:#999">'+p.variante+'</span></span>';
+    html += '<input class="precio-inp" id="pr-p-'+p.id+'" type="number" value="'+(p.precio||0)+'" placeholder="Precio" min="0" step="0.01" oninput="actualizarMargen(\''+p.id+'\')">';
+    html += '<input class="precio-inp" id="pr-c-'+p.id+'" type="number" value="'+(p.costo||0)+'" placeholder="Costo" min="0" step="0.01" oninput="actualizarMargen(\''+p.id+'\')">';
+    html += '<span class="'+mClass+'" id="mg-'+p.id+'">'+mText+'</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // Stock notification button
+  html += '<div class="rep-card"><div class="rep-title">🔔 Notificaciones</div>';
+  html += '<p style="font-size:12px;color:#555;margin-bottom:8px">Activa las notificaciones para recibir alertas cuando un producto esté bajo de stock.</p>';
+  html += '<button onclick="pedirPermisNotificaciones()" style="width:100%;padding:11px;border-radius:12px;border:1px solid #1F4E79;background:transparent;color:#1F4E79;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">🔔 Activar notificaciones de stock</button>';
+  html += '</div>';
+
+  html += '</div>';
+  el.innerHTML = html;
+
+  // Inject stock banner in dashboard
+  checkNotificaciones();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE 2: REPORTE WHATSAPP
+// ══════════════════════════════════════════════════════════════════════════════
+function enviarReporteWhatsApp(){
+  var prod = S.productos;
+  var ins  = S.insumos;
+  var mermas = S.mermas || [];
+  var fecha = new Date().toLocaleDateString('es-VE',{weekday:'long',day:'numeric',month:'long'});
+  var totalVend = prod.reduce(function(s,p){return s+p.vend;},0);
+  var totalIng  = prod.reduce(function(s,p){return s+(p.vend*(p.precio||0));},0);
+  var bajosIns  = ins.filter(function(i){return stIns(i)==='reponer';});
+  var bajosProd = prod.filter(function(p){return stProd(p)==='reponer';});
+  var hoyStr    = new Date().toDateString();
+  var mermasHoy = mermas.filter(function(m){return new Date(m.ts).toDateString()===hoyStr;});
+  var perdida   = mermasHoy.reduce(function(s,m){return s+(m.perdidaTotal||0);},0);
+  var topVend   = prod.slice().sort(function(a,b){return b.vend-a.vend;}).slice(0,3);
+
+  var msg = '☕ *CRUSH — Reporte de Inventario*\n';
+  msg += '📅 '+fecha+'\n\n';
+  msg += '📊 *RESUMEN GENERAL*\n';
+  msg += '• Unidades vendidas: *'+totalVend+'*\n';
+  msg += '• Ingresos estimados: *'+fmt$(totalIng)+'*\n';
+  msg += '• Mermas hoy: *'+mermasHoy.length+'* (pérdida: *'+fmt$(perdida)+'*)\n\n';
+  if(topVend.length>0){
+    msg += '🏆 *TOP PRODUCTOS*\n';
+    topVend.forEach(function(p,i){ msg += (i+1)+'. '+p.nombre+' · '+p.variante+': *'+p.vend+' uds*\n'; });
+    msg += '\n';
+  }
+  if(bajosIns.length>0||bajosProd.length>0){
+    msg += '⚠️ *ALERTAS DE STOCK BAJO*\n';
+    bajosIns.slice(0,5).forEach(function(i){ msg += '• 📦 '+i.nombre+': *'+i.cant+' '+i.unidad+'* (mín '+i.min+')\n'; });
+    bajosProd.slice(0,5).forEach(function(p){ msg += '• 🛍 '+p.nombre+' · '+p.variante+': stock *'+Math.max(0,p.prod-p.vend)+'* (mín '+p.min+')\n'; });
+  } else {
+    msg += '✅ *Todo el stock en niveles normales*\n';
+  }
+  msg += '\n_Generado por el sistema CRUSH · Coffee, Cookies & Rolls_';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE 3: PRECIOS Y MÁRGENES
+// ══════════════════════════════════════════════════════════════════════════════
+function actualizarMargen(id){
+  var precio = parseFloat(document.getElementById('pr-p-'+id)&&document.getElementById('pr-p-'+id).value)||0;
+  var costo  = parseFloat(document.getElementById('pr-c-'+id)&&document.getElementById('pr-c-'+id).value)||0;
+  var el = document.getElementById('mg-'+id);
+  if(!el) return;
+  if(precio>0&&costo>0){
+    var m = Math.round(((precio-costo)/precio)*100);
+    el.textContent = m+'%';
+    el.className = 'margen-badge '+(m>=40?'margen-ok':m>=20?'margen-med':'margen-low');
+  } else {
+    el.textContent = '—';
+    el.className = 'margen-badge';
+  }
+}
+
+async function guardarPrecios(){
+  var prod = S.productos;
+  for(var i=0;i<prod.length;i++){
+    var p = prod[i];
+    var ep = document.getElementById('pr-p-'+p.id);
+    var ec = document.getElementById('pr-c-'+p.id);
+    if(ep) p.precio = parseFloat(ep.value)||0;
+    if(ec) p.costo  = parseFloat(ec.value)||0;
+    if(db) await firebase.database().ref('inventario/productos/'+p.id).update({precio:p.precio,costo:p.costo});
+  }
+  showToast('✅ Precios guardados');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FEATURE 4: NOTIFICACIONES DE STOCK BAJO
+// ══════════════════════════════════════════════════════════════════════════════
+function checkNotificaciones(){
+  var bajosIns  = S.insumos.filter(function(i){return stIns(i)==='reponer';});
+  var bajosProd = S.productos.filter(function(p){return stProd(p)==='reponer';});
+  var total = bajosIns.length + bajosProd.length;
+  var dashEl = document.getElementById('tab-dashboard');
+  if(!dashEl) return;
+  var banner = document.getElementById('stock-banner');
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = 'stock-banner';
+    var hdr = dashEl.querySelector('.sec-hdr');
+    if(hdr) hdr.parentNode.insertBefore(banner, hdr.nextSibling);
+    else dashEl.prepend(banner);
+  }
+  if(total>0){
+    banner.textContent = '';
+    banner.innerHTML = '⚠️ '+total+' item'+(total>1?'s':'')+' con stock bajo — toca para ver';
+    banner.className = 'notif-bar';
+    banner.style.display = 'flex';
+    banner.onclick = function(){ goTab('insumos'); };
+  } else {
+    banner.style.display = 'none';
+  }
+  if(total>0 && typeof Notification!=='undefined' && Notification.permission==='granted'){
+    try{
+      new Notification('☕ CRUSH — Stock bajo',{body:total+' producto'+(total>1?'s':'')+' necesitan reposición'});
+    }catch(e){}
+  }
+}
+
+function pedirPermisNotificaciones(){
+  if(typeof Notification==='undefined'){ showToast('Tu navegador no soporta notificaciones'); return; }
+  Notification.requestPermission().then(function(p){
+    if(p==='granted') showToast('✅ Notificaciones activadas');
+    else showToast('❌ Actívalas desde la configuración del navegador');
+  });
+}
+
+// Override updateBadges to also check notifications
+var _origUpdateBadges = updateBadges;
+updateBadges = function(){
+  _origUpdateBadges();
+  if(S.insumos&&S.insumos.length>0) checkNotificaciones();
+};
+
 </script>
 </body>
 </html>
