@@ -143,8 +143,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro)
 .tab-panel.active{display:block;animation:fadeIn .2s ease;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
 
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--negro);display:flex;padding:10px 0 max(14px,env(safe-area-inset-bottom));border-top:1px solid #222;z-index:200;}
-.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:#444;font-family:'DM Sans',sans-serif;font-size:9px;font-weight:600;letter-spacing:.5px;padding:3px 0;transition:color .2s;text-transform:uppercase;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--negro);display:flex;overflow-x:auto;overflow-y:hidden;padding:10px 0 max(14px,env(safe-area-inset-bottom));border-top:1px solid #222;z-index:200;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.bottom-nav::-webkit-scrollbar{display:none;}
+.nav-btn{flex:0 0 auto;min-width:58px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:#444;font-family:'DM Sans',sans-serif;font-size:9px;font-weight:600;letter-spacing:.5px;padding:3px 0;transition:color .2s;text-transform:uppercase;}
 .nav-btn.active{color:var(--dorado);}
 .nav-icon{font-size:19px;line-height:1;}
 .nav-wrap{position:relative;display:inline-block;}
@@ -470,6 +471,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro)
 
     <div id="tab-bitacora" class="tab-panel">
       <div class="sec-hdr">📋 Registro de <span>Actividad</span></div>
+      <div id="bitacora-vista-btns" style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap"></div>
+      <div id="bitacora-vista-content"></div>
       <div class="chips" id="chips-log"></div>
       <div id="lista-log"></div>
     </div>
@@ -496,6 +499,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro)
       <div id="cierre-content" style="padding:0 0 120px"></div>
     </div>
     <!-- HISTORIAL -->
+    <!-- RECETAS / FICHAS TÉCNICAS -->
+  <div id="tab-recetas" class="tab-panel">
+    <div class="sec-hdr">📖 Recetario & <span>Fichas Técnicas</span></div>
+    <div id="recetas-content" style="padding:0 0 100px"></div>
+  </div>
+  <!-- BEBIDAS & CAFÉ -->
+  <div id="tab-bebidas" class="tab-panel">
+    <div class="sec-hdr">☕ Bebidas & <span>Cafés</span></div>
+    <div id="bebidas-content" style="padding:0 0 100px"></div>
+  </div>
+  <!-- CIERRE DE INSUMOS -->
+  <div id="tab-cierre-ins" class="tab-panel">
+    <div class="sec-hdr">📦 Cierre de <span>Insumos</span></div>
+    <div id="cierre-ins-content" style="padding:0 0 100px"></div>
+  </div>
     <div id="tab-historial" class="tab-panel">
       <div class="sec-hdr">📆 Historial <span>por Fecha</span></div>
       <div id="historial-content" style="padding:0 0 120px"></div>
@@ -514,6 +532,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro)
   <button class="nav-btn" id="nav-ventas" onclick="goTab('ventas')"><span class="nav-icon">💰</span>Ventas</button>
   <button class="nav-btn" id="nav-cierre" onclick="goTab('cierre')"><span class="nav-icon">📅</span>Cierre</button>
   <button class="nav-btn" id="nav-historial" onclick="goTab('historial')"><span class="nav-icon">📆</span>Historial</button>
+  <button class="nav-btn" id="nav-recetas" onclick="goTab('recetas')"><span class="nav-icon">📖</span>Recetas</button>
+  <button class="nav-btn" id="nav-bebidas" onclick="goTab('bebidas')"><span class="nav-icon">☕</span>Bebidas</button>
+  <button class="nav-btn" id="nav-cierre-ins" onclick="goTab('cierre-ins')"><span class="nav-icon">📦</span>Insumos</button>
   <button class="nav-btn" id="nav-usuarios" onclick="goTab('usuarios')" style="display:none"><span class="nav-icon">👥</span>Usuarios</button>
 </div>
 
@@ -939,7 +960,7 @@ window.exportarConteoCSV=function(){
   });
   lines.push('');
   lines.push(row(['PERDIDA TOTAL','','','','','',reg.perdidaEstimada||0,'']));
-  var csv='\uFEFF'+lines.join('\n');
+  var csv=lines.join('\n');
   var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Conteo_'+reg.fecha+'.csv';a.click();
   showToast('Descargando...');
@@ -1514,6 +1535,9 @@ window.goTab = function(tab){
   if(tab==='usuarios') renderUsuariosMgmt();
   if(tab==='ventas') { if(typeof renderVentas==='function') renderVentas(); }
   if(tab==='cierre') renderCierre();
+  if(tab==='recetas') renderRecetas();
+  if(tab==='bebidas') renderBebidas();
+  if(tab==='cierre-ins') renderCierreInsumos();
   if(tab==='reportes') renderReportes();
   if(tab==='historial') renderHistorial();
   if(tab==='ventas') renderVentas();
@@ -4167,6 +4191,477 @@ window.guardarEdicionDia = function(fecha){
       el.appendChild(btn);
     }, 300);
   };
+})();
+
+
+
+/* ══════════════════════════════════════════════════════════════════
+   MÓDULO 1 — RECETARIO & FICHAS TÉCNICAS
+   ══════════════════════════════════════════════════════════════════ */
+
+// Recetas por defecto para CRUSH
+var DEF_RECETAS = [
+  { id:'r_cappuccino_g',  nombre:'Cappuccino Grande',       cat:'cafe', rendimiento:1, precio:7000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:21,unidad:'g'},{insId:'leche',nombre:'Leche',cantidad:150,unidad:'ml'}] },
+  { id:'r_cappuccino_xl', nombre:'Cappuccino Extra Grande',  cat:'cafe', rendimiento:1, precio:9000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:21,unidad:'g'},{insId:'leche',nombre:'Leche',cantidad:220,unidad:'ml'}] },
+  { id:'r_latte_g',       nombre:'Latte Grande',             cat:'cafe', rendimiento:1, precio:7000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:10.5,unidad:'g'},{insId:'leche',nombre:'Leche',cantidad:180,unidad:'ml'}] },
+  { id:'r_latte_xl',      nombre:'Latte Extra Grande',       cat:'cafe', rendimiento:1, precio:9000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:21,unidad:'g'},{insId:'leche',nombre:'Leche',cantidad:250,unidad:'ml'}] },
+  { id:'r_mocaccino_g',   nombre:'Mocaccino Grande',         cat:'cafe', rendimiento:1, precio:7000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:21,unidad:'g'},{insId:'leche',nombre:'Leche',cantidad:150,unidad:'ml'},{insId:'chocolate',nombre:'Chocolate',cantidad:20,unidad:'g'}] },
+  { id:'r_mocaccino_xl',  nombre:'Mocaccino Extra Grande',   cat:'cafe', rendimiento:1, precio:9000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:21,unidad:'g'},{insId:'leche',nombre:'Leche',cantidad:220,unidad:'ml'},{insId:'chocolate',nombre:'Chocolate',cantidad:30,unidad:'g'}] },
+  { id:'r_marron_g',      nombre:'Marrón / Negro Grande',    cat:'cafe', rendimiento:1, precio:5000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:21,unidad:'g'}] },
+  { id:'r_marron_xl',     nombre:'Marrón / Negro XL',        cat:'cafe', rendimiento:1, precio:7000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:21,unidad:'g'}] },
+  { id:'r_conleche_g',    nombre:'Con Leche Grande',         cat:'cafe', rendimiento:1, precio:5000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:10.5,unidad:'g'},{insId:'leche',nombre:'Leche',cantidad:160,unidad:'ml'}] },
+  { id:'r_conleche_xl',   nombre:'Con Leche Extra Grande',   cat:'cafe', rendimiento:1, precio:7000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:21,unidad:'g'},{insId:'leche',nombre:'Leche',cantidad:220,unidad:'ml'}] },
+  { id:'r_guayoyo_g',     nombre:'Guayoyo Grande',           cat:'cafe', rendimiento:1, precio:3000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:0,unidad:'g'},{insId:'leche',nombre:'Agua caliente',cantidad:200,unidad:'ml'}] },
+  { id:'r_guayoyo_xl',    nombre:'Guayoyo Extra Grande',     cat:'cafe', rendimiento:1, precio:5000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:0,unidad:'g'},{insId:'leche',nombre:'Agua caliente',cantidad:280,unidad:'ml'}] },
+  { id:'r_frap',          nombre:'Frapuccino',               cat:'bebida', rendimiento:1, precio:15000,
+    ingredientes:[{insId:'cafe_molido',nombre:'Café molido',cantidad:21,unidad:'g'},{insId:'leche',nombre:'Leche',cantidad:150,unidad:'ml'},{insId:'hielo',nombre:'Hielo',cantidad:200,unidad:'g'},{insId:'crema',nombre:'Crema chantilly',cantidad:30,unidad:'g'}] },
+  { id:'r_merengada',     nombre:'Merengada',                cat:'bebida', rendimiento:1, precio:10000,
+    ingredientes:[{insId:'leche',nombre:'Leche',cantidad:200,unidad:'ml'},{insId:'hielo',nombre:'Hielo',cantidad:150,unidad:'g'}] },
+];
+
+function getRecetas(){
+  return S.recetas && S.recetas.length>0 ? S.recetas : DEF_RECETAS;
+}
+
+function costoReceta(r){
+  if(!r.ingredientes||!r.ingredientes.length) return 0;
+  return r.ingredientes.reduce(function(sum,ing){
+    var ins = (S.insumos||[]).find(function(i){return i.id===ing.insId;});
+    var costoUnitario = ins&&ins.costo&&ins.cant ? ins.costo/ins.cant : 0;
+    return sum + (ing.cantidad * costoUnitario);
+  },0);
+}
+
+function renderRecetas(){
+  var el=document.getElementById('recetas-content'); if(!el) return;
+  var recetas=getRecetas();
+  var cats=[{id:'cafe',label:'☕ Cafés'},{id:'bebida',label:'🥤 Bebidas'},{id:'panaderia',label:'🥐 Panadería'},{id:'postre',label:'🍰 Postres'},{id:'otro',label:'📦 Otros'}];
+  var h='';
+
+  // Botón nueva receta
+  h+='<div style="margin-bottom:12px"><button onclick="abrirNuevaReceta()" style="width:100%;padding:13px;border-radius:12px;border:2px dashed var(--dorado);background:var(--dorado-bg);color:var(--dorado);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">+ Nueva Receta / Ficha Técnica</button></div>';
+
+  // Filtro categoría
+  h+='<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px;scrollbar-width:none">';
+  h+='<button class="chip '+(window._recetaCat===undefined||window._recetaCat===null?'active':'')+'" onclick="window._recetaCat=null;renderRecetas()">Todas</button>';
+  cats.forEach(function(cat){
+    h+='<button class="chip '+(window._recetaCat===cat.id?'active':'')+'" onclick="window._recetaCat=\''+cat.id+'\';renderRecetas()">'+cat.label+'</button>';
+  });
+  h+='</div>';
+
+  var filtradas=recetas.filter(function(r){return !window._recetaCat||r.cat===window._recetaCat;});
+
+  if(!filtradas.length){
+    h+='<div class="empty-state"><div style="font-size:32px">📖</div><div>Sin recetas en esta categoría</div></div>';
+    el.innerHTML=h; return;
+  }
+
+  filtradas.forEach(function(r){
+    var costo=costoReceta(r);
+    var margen=r.precio&&r.precio>0?((r.precio-costo)/r.precio*100):0;
+    var margenColor=margen>=50?'var(--verde)':margen>=30?'#E65100':'var(--rojo)';
+    h+='<div class="cierre-card" style="margin-bottom:10px">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+    h+='<div><div style="font-size:14px;font-weight:700;color:var(--crema)">'+r.nombre+'</div>';
+    h+='<div style="font-size:11px;color:var(--color-text-tertiary);margin-top:2px">Rinde: '+r.rendimiento+' unidad'+(r.rendimiento!==1?'es':'')+'</div></div>';
+    h+='<button onclick="editarReceta(\''+r.id+'\')" style="background:var(--dorado-bg);border:1px solid var(--dorado);color:var(--dorado);border-radius:8px;padding:5px 10px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:700">✏️ Editar</button>';
+    h+='</div>';
+
+    // Ingredientes
+    h+='<div style="margin-bottom:10px">';
+    (r.ingredientes||[]).forEach(function(ing){
+      var ins=(S.insumos||[]).find(function(i){return i.id===ing.insId;});
+      var costoIng=ins&&ins.costo&&ins.cant?(ing.cantidad*(ins.costo/ins.cant)):0;
+      h+='<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.06)">';
+      h+='<span style="color:var(--color-text-secondary)">'+ing.nombre+' — '+ing.cantidad+' '+ing.unidad+'</span>';
+      h+='<span style="color:var(--color-text-tertiary);font-size:11px">'+fmt$(costoIng)+'</span>';
+      h+='</div>';
+    });
+    h+='</div>';
+
+    // KPIs
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+    h+='<div style="background:rgba(0,0,0,.2);border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:var(--color-text-tertiary)">Costo</div><div style="font-size:14px;font-weight:700;color:var(--rojo)">'+fmt$(costo)+'</div></div>';
+    h+='<div style="background:rgba(0,0,0,.2);border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:var(--color-text-tertiary)">Precio</div><div style="font-size:14px;font-weight:700;color:var(--dorado)">'+fmt$(r.precio||0)+'</div></div>';
+    h+='<div style="background:rgba(0,0,0,.2);border-radius:8px;padding:8px;text-align:center"><div style="font-size:11px;color:var(--color-text-tertiary)">Margen</div><div style="font-size:14px;font-weight:700;color:'+margenColor+'">'+margen.toFixed(0)+'%</div></div>';
+    h+='</div></div>';
+  });
+
+  el.innerHTML=h;
+}
+
+window.abrirNuevaReceta=function(recetaId){
+  var r=recetaId?(getRecetas().find(function(x){return x.id===recetaId;})||null):null;
+  var modal=document.getElementById('modal-add');
+  var title=document.getElementById('modal-add-title');
+  var body=document.getElementById('modal-add-body');
+  if(!modal||!title||!body) return;
+  title.textContent=r?'✏️ Editar Receta':'➕ Nueva Receta';
+  var cats=[{id:'cafe',label:'☕ Café'},{id:'bebida',label:'🥤 Bebida'},{id:'panaderia',label:'🥐 Panadería'},{id:'postre',label:'🍰 Postre'},{id:'otro',label:'📦 Otro'}];
+  var ings=r&&r.ingredientes?r.ingredientes:[{insId:'',nombre:'',cantidad:0,unidad:'g'}];
+  var h='';
+  h+='<div class="field-col"><div class="flabel">Nombre del producto</div><input class="finput" id="rec-nombre" value="'+(r?r.nombre:'')+'" placeholder="Ej: Cappuccino Grande"></div>';
+  h+='<div class="field-row">';
+  h+='<div class="field-col"><div class="flabel">Categoría</div><select class="finput" id="rec-cat">';
+  cats.forEach(function(c){h+='<option value="'+c.id+'" '+(r&&r.cat===c.id?'selected':'')+'>'+c.label+'</option>';});
+  h+='</select></div>';
+  h+='<div class="field-col"><div class="flabel">Precio venta</div><input class="finput" type="number" id="rec-precio" value="'+(r?r.precio||0:0)+'" placeholder="0"></div>';
+  h+='</div>';
+  h+='<div class="field-col"><div class="flabel">Rendimiento (unidades que produce)</div><input class="finput" type="number" id="rec-rend" value="'+(r?r.rendimiento||1:1)+'" min="1"></div>';
+  h+='<div style="font-size:11px;font-weight:700;color:var(--dorado);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.5px">Ingredientes</div>';
+  h+='<div id="rec-ings-wrap">';
+  ings.forEach(function(ing,i){
+    h+=_ingRow(ing,i);
+  });
+  h+='</div>';
+  h+='<button onclick="_addIngRow()" style="width:100%;padding:9px;border-radius:10px;border:1px dashed #555;background:transparent;color:#aaa;font-size:12px;cursor:pointer;font-family:inherit;margin:6px 0 12px">+ Agregar ingrediente</button>';
+  h+='<div id="rec-costo-preview" style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;text-align:center;color:var(--color-text-secondary)">El costo se calcula con los precios de insumos registrados</div>';
+  h+='<button class="btn-primary" onclick="guardarReceta(\''+( r?r.id:'' )+'\')" style="background:var(--verde-m)">💾 Guardar Receta</button>';
+  body.innerHTML=h;
+  openModal('modal-add');
+};
+
+window.editarReceta=function(id){ window.abrirNuevaReceta(id); };
+
+function _ingRow(ing,i){
+  var insOpts='<option value="">-- Insumo --</option>';
+  (S.insumos||[]).forEach(function(ins){
+    insOpts+='<option value="'+ins.id+'" '+(ing.insId===ins.id?'selected':'')+'>'+ins.nombre+'</option>';
+  });
+  return '<div class="field-row" id="ing-row-'+i+'" style="margin-bottom:6px;align-items:center">'
+    +'<div class="field-col" style="flex:2"><select class="finput ing-ins" data-i="'+i+'" onchange="updateIngNombre('+i+',this.value)">'+insOpts+'</select></div>'
+    +'<div class="field-col"><input class="finput ing-cant" type="number" data-i="'+i+'" value="'+(ing.cantidad||0)+'" placeholder="Cant" min="0" step="0.01"></div>'
+    +'<div class="field-col"><input class="finput ing-und" data-i="'+i+'" value="'+(ing.unidad||'g')+'" placeholder="g/ml/und"></div>'
+    +'<button onclick="document.getElementById(\'ing-row-'+i+'\').remove()" style="background:var(--rojo);border:none;border-radius:8px;padding:8px;color:#fff;cursor:pointer;flex-shrink:0">✕</button>'
+    +'</div>';
+}
+
+window.updateIngNombre=function(i,insId){
+  var ins=(S.insumos||[]).find(function(x){return x.id===insId;});
+  if(ins){
+    var undEl=document.querySelectorAll('.ing-und')[i];
+    if(undEl) undEl.value=ins.unidad||'g';
+  }
+};
+
+window._addIngRow=function(){
+  var wrap=document.getElementById('rec-ings-wrap'); if(!wrap) return;
+  var i=wrap.querySelectorAll('[id^="ing-row-"]').length;
+  var div=document.createElement('div');
+  div.innerHTML=_ingRow({insId:'',nombre:'',cantidad:0,unidad:'g'},i);
+  wrap.appendChild(div.firstChild);
+};
+
+window.guardarReceta=function(oldId){
+  var nombre=(document.getElementById('rec-nombre')||{}).value||'';
+  var cat=(document.getElementById('rec-cat')||{}).value||'otro';
+  var precio=parseFloat((document.getElementById('rec-precio')||{}).value)||0;
+  var rend=parseInt((document.getElementById('rec-rend')||{}).value)||1;
+  if(!nombre){showToast('Ingresa el nombre');return;}
+  var ings=[];
+  document.querySelectorAll('#rec-ings-wrap [id^="ing-row-"]').forEach(function(row){
+    var insId=(row.querySelector('.ing-ins')||{}).value||'';
+    var cant=parseFloat((row.querySelector('.ing-cant')||{}).value)||0;
+    var und=(row.querySelector('.ing-und')||{}).value||'g';
+    var ins=(S.insumos||[]).find(function(i){return i.id===insId;});
+    if(insId) ings.push({insId:insId,nombre:ins?ins.nombre:insId,cantidad:cant,unidad:und});
+  });
+  var nuevaReceta={id:oldId||('r_'+Date.now()),nombre:nombre,cat:cat,precio:precio,rendimiento:rend,ingredientes:ings,ts:Date.now()};
+  if(!S.recetas) S.recetas=JSON.parse(JSON.stringify(DEF_RECETAS));
+  if(oldId){var idx=S.recetas.findIndex(function(r){return r.id===oldId;});if(idx>=0)S.recetas[idx]=nuevaReceta;else S.recetas.push(nuevaReceta);}
+  else{S.recetas.push(nuevaReceta);}
+  if(db) firebase.database().ref('recetas/'+nuevaReceta.id).set(nuevaReceta);
+  fbLog('add','Receta: '+nombre);
+  showToast('Receta guardada');
+  closeModal('modal-add');
+  renderRecetas();
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   MÓDULO 2 — BEBIDAS & CAFÉS
+   ══════════════════════════════════════════════════════════════════ */
+
+var BEBIDAS_DEF = [
+  // Cafés
+  {id:'b_cap_g',    nombre:'Cappuccino Grande',      cat:'cafe',   precio:7000,  grCafe:21,   stock:0, unidad:'und'},
+  {id:'b_cap_xl',   nombre:'Cappuccino XL',          cat:'cafe',   precio:9000,  grCafe:21,   stock:0, unidad:'und'},
+  {id:'b_latte_g',  nombre:'Latte Grande',           cat:'cafe',   precio:7000,  grCafe:10.5, stock:0, unidad:'und'},
+  {id:'b_latte_xl', nombre:'Latte XL',               cat:'cafe',   precio:9000,  grCafe:21,   stock:0, unidad:'und'},
+  {id:'b_moc_g',    nombre:'Mocaccino Grande',       cat:'cafe',   precio:7000,  grCafe:21,   stock:0, unidad:'und'},
+  {id:'b_moc_xl',   nombre:'Mocaccino XL',           cat:'cafe',   precio:9000,  grCafe:21,   stock:0, unidad:'und'},
+  {id:'b_neg_g',    nombre:'Marrón / Negro Grande',  cat:'cafe',   precio:5000,  grCafe:21,   stock:0, unidad:'und'},
+  {id:'b_neg_xl',   nombre:'Marrón / Negro XL',      cat:'cafe',   precio:7000,  grCafe:21,   stock:0, unidad:'und'},
+  {id:'b_cl_g',     nombre:'Con Leche Grande',       cat:'cafe',   precio:5000,  grCafe:10.5, stock:0, unidad:'und'},
+  {id:'b_cl_xl',    nombre:'Con Leche XL',           cat:'cafe',   precio:7000,  grCafe:21,   stock:0, unidad:'und'},
+  {id:'b_guy_g',    nombre:'Guayoyo Grande',         cat:'cafe',   precio:3000,  grCafe:0,    stock:0, unidad:'und'},
+  {id:'b_guy_xl',   nombre:'Guayoyo XL',             cat:'cafe',   precio:5000,  grCafe:0,    stock:0, unidad:'und'},
+  // Frías
+  {id:'b_frap',     nombre:'Frapuccino',             cat:'fria',   precio:15000, grCafe:21,   stock:0, unidad:'und'},
+  {id:'b_mer',      nombre:'Merengada',              cat:'fria',   precio:10000, grCafe:0,    stock:0, unidad:'und'},
+  {id:'b_batido',   nombre:'Batido',                 cat:'fria',   precio:8000,  grCafe:0,    stock:0, unidad:'und'},
+  // Calientes
+  {id:'b_choc',     nombre:'Chocolate caliente',     cat:'caliente', precio:6000, grCafe:0,   stock:0, unidad:'und'},
+  {id:'b_inf',      nombre:'Infusión',               cat:'caliente', precio:4000, grCafe:0,   stock:0, unidad:'und'},
+  {id:'b_leche',    nombre:'Leche tibia',            cat:'caliente', precio:4000, grCafe:0,   stock:0, unidad:'und'},
+];
+
+function getBebidas(){
+  return S.bebidas&&S.bebidas.length>0?S.bebidas:BEBIDAS_DEF;
+}
+
+function renderBebidas(){
+  var el=document.getElementById('bebidas-content'); if(!el) return;
+  var bebidas=getBebidas();
+  var hoy2=hoy();
+  var ventasHoy=(S.ventas&&S.ventas[hoy2]&&S.ventas[hoy2].bebidas)||{};
+  var totalCafeGr=bebidas.reduce(function(s,b){return s+(ventasHoy[b.id]||0)*b.grCafe;},0);
+  var totalVentas=bebidas.reduce(function(s,b){return s+(ventasHoy[b.id]||0)*b.precio;},0);
+
+  // KPIs café
+  var insCafe=(S.insumos||[]).find(function(i){return i.nombre&&i.nombre.toLowerCase().indexOf('caf')>-1&&i.nombre.toLowerCase().indexOf('mol')>-1;});
+  var stockCafeGr=insCafe?(insCafe.stock||insCafe.cant||0)*1000:0; // convertir kg a g si aplica
+
+  var h='';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">';
+  h+='<div class="cierre-card" style="text-align:center"><div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px">☕ Café usado hoy</div><div style="font-size:20px;font-weight:700;color:var(--dorado)">'+totalCafeGr.toFixed(1)+'g</div></div>';
+  h+='<div class="cierre-card" style="text-align:center"><div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px">💰 Ventas bebidas hoy</div><div style="font-size:18px;font-weight:700;color:var(--verde)">'+fmt$(totalVentas)+'</div></div>';
+  h+='</div>';
+
+  // Registro de ventas de bebidas
+  h+='<div class="cierre-card"><div class="cierre-title">📝 Registrar Ventas de Bebidas</div>';
+  h+='<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:10px">Anota cuántas bebidas se vendieron hoy. El sistema calcula el café usado automáticamente.</div>';
+
+  var catLabels={cafe:'☕ Cafés',fria:'🧊 Bebidas Frías',caliente:'🌡️ Bebidas Calientes'};
+  var cats=['cafe','fria','caliente'];
+  cats.forEach(function(cat){
+    var bCat=bebidas.filter(function(b){return b.cat===cat;});
+    if(!bCat.length) return;
+    h+='<div style="font-size:11px;font-weight:700;color:var(--dorado);margin:10px 0 6px;text-transform:uppercase">'+catLabels[cat]+'</div>';
+    bCat.forEach(function(b){
+      var vend=ventasHoy[b.id]||0;
+      h+='<div class="transfer-row"><div><div style="font-size:13px;font-weight:600">'+b.nombre+'</div>';
+      if(b.grCafe>0) h+='<div style="font-size:10px;color:var(--color-text-tertiary)">'+b.grCafe+'g café por unidad</div>';
+      else if(b.grCafe===0&&b.cat==='cafe') h+='<div style="font-size:10px;color:var(--verde)">Sin consumo de café (borra)</div>';
+      h+='</div>';
+      h+='<div style="display:flex;align-items:center;gap:8px">';
+      h+='<button onclick="adjBebida(\''+b.id+'\',-1)" style="width:28px;height:28px;border-radius:50%;border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;font-size:16px;font-weight:700">−</button>';
+      h+='<span id="bv-'+b.id+'" style="font-size:16px;font-weight:700;min-width:28px;text-align:center;color:var(--dorado)">'+vend+'</span>';
+      h+='<button onclick="adjBebida(\''+b.id+'\',1)" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--dorado);background:var(--dorado-bg);color:var(--dorado);cursor:pointer;font-size:16px;font-weight:700">+</button>';
+      h+='</div></div>';
+    });
+  });
+  h+='<button class="btn-primary" onclick="guardarVentasBebidas()" style="margin-top:12px;background:var(--verde-m)">💾 Guardar Ventas del Día</button>';
+  h+='</div>';
+
+  // Historial últimos 7 días
+  h+='<div class="sec-hdr" style="margin-top:4px">📊 Últimos <span>7 días</span></div>';
+  var dias=[];for(var i=0;i<7;i++){var d=new Date();d.setDate(d.getDate()-i);dias.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));}
+  var hayHist=false;
+  dias.forEach(function(dia){
+    var vDia=(S.ventas&&S.ventas[dia]&&S.ventas[dia].bebidas)||{};
+    var totalDia=Object.entries(vDia).reduce(function(s,kv){
+      var b=getBebidas().find(function(x){return x.id===kv[0];});
+      return s+(b?kv[1]*b.precio:0);
+    },0);
+    var grDia=Object.entries(vDia).reduce(function(s,kv){
+      var b=getBebidas().find(function(x){return x.id===kv[0];});
+      return s+(b?kv[1]*b.grCafe:0);
+    },0);
+    if(totalDia>0){
+      hayHist=true;
+      h+='<div class="cierre-card" style="margin-bottom:8px">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center">';
+      h+='<div style="font-size:13px;font-weight:600;color:var(--crema)">'+new Date(dia+'T12:00:00').toLocaleDateString('es-CO',{weekday:'short',day:'numeric',month:'short'})+'</div>';
+      h+='<div style="text-align:right"><div style="font-size:14px;font-weight:700;color:var(--verde)">'+fmt$(totalDia)+'</div>';
+      h+='<div style="font-size:10px;color:var(--color-text-tertiary)">☕ '+grDia.toFixed(0)+'g café</div></div>';
+      h+='</div></div>';
+    }
+  });
+  if(!hayHist) h+='<div class="empty-state"><div style="font-size:28px">📭</div><div>Sin registros de bebidas aún</div></div>';
+
+  el.innerHTML=h;
+  // Cargar ventas actuales en memoria temporal
+  window._bebidasHoy=Object.assign({},ventasHoy);
+}
+
+window.adjBebida=function(bid,delta){
+  if(!window._bebidasHoy) window._bebidasHoy={};
+  var cur=window._bebidasHoy[bid]||0;
+  var nuevo=Math.max(0,cur+delta);
+  window._bebidasHoy[bid]=nuevo;
+  var el=document.getElementById('bv-'+bid);
+  if(el) el.textContent=nuevo;
+  // Actualizar KPI café en tiempo real
+  var totalGr=getBebidas().reduce(function(s,b){return s+(window._bebidasHoy[b.id]||0)*b.grCafe;},0);
+  var kpiEl=document.querySelector('#bebidas-content [style*="Café usado hoy"] + div');
+};
+
+window.guardarVentasBebidas=function(){
+  var fecha2=hoy();
+  var bHoy=window._bebidasHoy||{};
+  // Calcular gramos de café usados
+  var totalGrCafe=getBebidas().reduce(function(s,b){return s+(bHoy[b.id]||0)*b.grCafe;},0);
+  // Descontar del insumo café molido
+  var insCafe=(S.insumos||[]).find(function(i){return i.nombre&&i.nombre.toLowerCase().indexOf('caf')>-1&&i.nombre.toLowerCase().indexOf('mol')>-1;});
+  if(insCafe&&totalGrCafe>0){
+    // Convertir gramos a unidad del insumo (puede ser kg o g)
+    var descuento=insCafe.unidad&&insCafe.unidad.toLowerCase()==='kg'?totalGrCafe/1000:totalGrCafe;
+    insCafe.stock=(insCafe.stock||insCafe.cant||0)-descuento;
+    if(insCafe.stock<0) insCafe.stock=0;
+    if(db) firebase.database().ref('inventario/insumos/'+insCafe.id).update({stock:insCafe.stock,cant:insCafe.stock});
+  }
+  // Guardar en ventas/fecha/bebidas
+  if(!S.ventas) S.ventas={};
+  if(!S.ventas[fecha2]) S.ventas[fecha2]={};
+  S.ventas[fecha2].bebidas=bHoy;
+  S.ventas[fecha2].grCafeUsado=(S.ventas[fecha2].grCafeUsado||0)+totalGrCafe;
+  if(db) firebase.database().ref('ventas/'+fecha2+'/bebidas').set(bHoy);
+  if(db) firebase.database().ref('ventas/'+fecha2+'/grCafeUsado').set(S.ventas[fecha2].grCafeUsado);
+  fbLog('add','Bebidas: '+Object.values(bHoy).reduce(function(s,v){return s+v;},0)+' und · '+totalGrCafe.toFixed(1)+'g café');
+  showToast('Bebidas guardadas — '+totalGrCafe.toFixed(1)+'g café descontado');
+  renderBebidas();
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   MÓDULO 3 — CIERRE DE INSUMOS (flexible)
+   ══════════════════════════════════════════════════════════════════ */
+
+function renderCierreInsumos(){
+  var el=document.getElementById('cierre-ins-content'); if(!el) return;
+  var ins=S.insumos||[];
+  // Último cierre de insumos
+  var ultimoCierre=S.ultimoCierreIns||null;
+  var h='';
+
+  // Info último cierre
+  if(ultimoCierre){
+    h+='<div style="background:var(--verde-l);border-radius:12px;padding:12px;margin-bottom:12px;border:1px solid var(--verde)">';
+    h+='<div style="font-size:12px;font-weight:700;color:var(--verde-m);margin-bottom:2px">✅ Último cierre de insumos</div>';
+    h+='<div style="font-size:11px;color:var(--verde-m)">'+ultimoCierre.fecha+' · '+ultimoCierre.hora+' · '+ultimoCierre.usuario+'</div>';
+    h+='</div>';
+  } else {
+    h+='<div style="background:var(--dorado-bg);border-radius:12px;padding:12px;margin-bottom:12px;border:1px solid var(--dorado)">';
+    h+='<div style="font-size:12px;color:var(--dorado)">Sin cierre de insumos previo registrado</div>';
+    h+='</div>';
+  }
+
+  h+='<div class="cierre-card"><div class="cierre-title">📦 Conteo de Insumos</div>';
+  h+='<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:10px">Anota la cantidad física que hay ahora de cada insumo. Solo llena los que vayas a contar.</div>';
+
+  // Buscador
+  h+='<div class="search-wrap" style="margin-bottom:10px"><span class="s-ico">🔍</span><input type="text" id="ci-search" class="finput" placeholder="Buscar insumo..." oninput="filtrarCierreIns()" style="padding-left:36px"></div>';
+  h+='<div id="ci-lista">';
+  ins.forEach(function(i){
+    var stockActual=i.stock!==undefined?i.stock:(i.cant||0);
+    h+='<div class="cierre-row" data-nombre="'+i.nombre.toLowerCase()+'">';
+    h+='<span class="cierre-label">'+i.nombre+'<br><span style="font-size:10px;color:var(--color-text-tertiary)">'+i.unidad+' · Sistema: <b>'+stockActual+'</b></span></span>';
+    h+='<input class="cierre-inp" id="ci-'+i.id+'" type="number" min="0" step="0.001" placeholder="Contar">';
+    h+='</div>';
+  });
+  h+='</div>';
+
+  h+='<button class="btn-primary" onclick="ejecutarCierreIns()" style="margin-top:12px;background:#6A1B9A">💾 Registrar Cierre de Insumos</button>';
+  h+='</div>';
+
+  // Historial cierres
+  var cierresIns=S.cierresIns||[];
+  if(cierresIns.length){
+    h+='<div class="sec-hdr" style="margin-top:4px">📋 Historial de <span>Cierres</span></div>';
+    cierresIns.slice().reverse().slice(0,5).forEach(function(c){
+      h+='<div class="cierre-card" style="margin-bottom:8px">';
+      h+='<div style="display:flex;justify-content:space-between;margin-bottom:6px">';
+      h+='<div style="font-size:13px;font-weight:600;color:var(--crema)">'+c.fecha+' · '+c.hora+'</div>';
+      h+='<div style="font-size:11px;color:var(--color-text-tertiary)">'+c.usuario+'</div>';
+      h+='</div>';
+      h+='<div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:6px">'+c.totalContados+' insumos contados · '+c.conDif+' con diferencia</div>';
+      if(c.difs&&c.difs.length){
+        c.difs.slice(0,4).forEach(function(d){
+          var color=d.dif<0?'var(--rojo)':'var(--verde)';
+          h+='<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span>'+d.nombre+'</span><span style="color:'+color+'">'+(d.dif>0?'+':'')+d.dif.toFixed(2)+' '+d.unidad+'</span></div>';
+        });
+      }
+      h+='</div>';
+    });
+  }
+
+  el.innerHTML=h;
+}
+
+window.filtrarCierreIns=function(){
+  var q=(document.getElementById('ci-search')||{}).value||'';
+  var term=q.toLowerCase().trim();
+  document.querySelectorAll('#ci-lista .cierre-row').forEach(function(row){
+    row.style.display=!term||row.dataset.nombre.indexOf(term)!==-1?'':'none';
+  });
+};
+
+window.ejecutarCierreIns=function(){
+  var ins=S.insumos||[];
+  var conteos=[];
+  var difs=[];
+  ins.forEach(function(i){
+    var el=document.getElementById('ci-'+i.id);
+    if(!el||el.value==='') return;
+    var cnt=parseFloat(el.value)||0;
+    var sis=i.stock!==undefined?i.stock:(i.cant||0);
+    var dif=cnt-sis;
+    conteos.push({insId:i.id,nombre:i.nombre,unidad:i.unidad,sis:sis,cnt:cnt,dif:dif});
+    if(Math.abs(dif)>0.001) difs.push({nombre:i.nombre,unidad:i.unidad,dif:dif,sis:sis,cnt:cnt});
+    // Actualizar stock
+    i.stock=cnt;
+    if(i.cant!==undefined) i.cant=cnt;
+    if(db) firebase.database().ref('inventario/insumos/'+i.id).update({stock:cnt,cant:cnt});
+  });
+  if(!conteos.length){showToast('No ingresaste ningún conteo');return;}
+  var hora2=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+  var registro={
+    fecha:hoy(),hora:hora2,ts:Date.now(),
+    usuario:currentUser?currentUser.nombre:'',
+    totalContados:conteos.length,conDif:difs.length,
+    difs:difs,conteos:conteos
+  };
+  if(!S.cierresIns) S.cierresIns=[];
+  S.cierresIns.push(registro);
+  S.ultimoCierreIns=registro;
+  if(db){
+    firebase.database().ref('cierresIns').push(registro);
+    firebase.database().ref('ultimoCierreIns').set(registro);
+  }
+  fbLog('cierre','Cierre insumos: '+conteos.length+' contados, '+difs.length+' diferencias');
+  showToast('Cierre de insumos registrado — '+difs.length+' diferencias');
+  renderCierreInsumos();
+};
+
+/* Cargar recetas y bebidas desde Firebase al iniciar */
+(function initModulosExtra(){
+  var check=setInterval(function(){
+    if(typeof db!=='undefined'&&db){
+      clearInterval(check);
+      firebase.database().ref('recetas').once('value').then(function(snap){
+        if(snap.exists()){
+          var arr=[];snap.forEach(function(c){arr.push(c.val());});
+          if(arr.length>0){S.recetas=arr;}
+        }
+      });
+      firebase.database().ref('cierresIns').orderByChild('ts').limitToLast(10).once('value').then(function(snap){
+        var arr=[];if(snap.exists())snap.forEach(function(c){arr.push(c.val());});
+        S.cierresIns=arr;
+        if(arr.length>0) S.ultimoCierreIns=arr[arr.length-1];
+      });
+    }
+  },500);
 })();
 
 </script>
