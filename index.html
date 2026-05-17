@@ -1653,7 +1653,15 @@ function renderIns(){
           <div class="sbar-lbl"><span>${item.cant} ${item.unidad}</span><span>${pct}% del máx</span></div>
           <div class="sbar-bg"><div class="sbar-fill" style="width:${pct}%;background:${bc}"></div></div>
         </div>
-        <div class="field-row">
+        <div class="field-row" style="margin-top:10px">
+          <div class="field-col"><div class="flabel">✏️ Nombre</div>
+            <input class="finput" type="text" value="${item.nombre}" ${locked?'disabled':''} id="ic-nom-${item.id}" placeholder="Nombre del insumo"></div>
+          <div class="field-col"><div class="flabel">📐 Unidad</div>
+            <select class="fselect" ${locked?'disabled':''} id="ic-und-${item.id}">
+              ${(function(){const opts=['Gr','Kg','Ml','Litro','Lt','Und','Unid','Paq','Caja','Botella','Rollo','Fco','Lata'];if(!opts.includes(item.unidad))opts.unshift(item.unidad);return opts.map(u=>`<option value="${u}"${item.unidad===u?' selected':''}>${u}</option>`).join('');})()}
+            </select></div>
+        </div>
+        <div class="field-row" style="margin-top:8px">
           <div class="field-col"><div class="flabel">🟡 Cantidad actual</div>
             <input class="finput yellow" type="number" min="0" step="0.5" value="${item.cant}" ${locked?'disabled':''} id="ic-cant-${item.id}"></div>
           <div class="field-col"><div class="flabel">🟡 Costo unit. ($)</div>
@@ -1672,7 +1680,7 @@ function renderIns(){
         ${mod?`<div class="last-mod">✏️ ${mod}</div>`:''}
         ${!locked?`<div class="action-row">
           <button class="btn-save" onclick="saveIns('${item.id}')">💾 Guardar</button>
-          ${canDelete()?`<button class="btn-del" onclick="delIns('${item.id}')">🗑</button>`:''}
+          <button class="btn-del" onclick="delIns('${item.id}')" title="Eliminar insumo">🗑</button>
         </div>`:'<div style="font-size:11px;color:var(--gris3);margin-top:8px;text-align:center">🔒 Solo lectura</div>'}
       </div>
     </div>`;
@@ -1685,20 +1693,22 @@ window.setFIns=function(c){ fIns=c; renderIns(); };
 
 window.saveIns=async function(id){
   const item=S.insumos.find(i=>i.id===id); if(!item) return;
+  const nom=(document.getElementById(`ic-nom-${id}`)?.value||'').trim()||item.nombre;
+  const und=document.getElementById(`ic-und-${id}`)?.value||item.unidad;
   const cant=parseFloat(document.getElementById(`ic-cant-${id}`)?.value)||0;
   const costo=parseFloat(document.getElementById(`ic-costo-${id}`)?.value)||0;
   const min=parseFloat(document.getElementById(`ic-min-${id}`)?.value)||0;
   const max=parseFloat(document.getElementById(`ic-max-${id}`)?.value)||0;
-  const updated={...item,cant,costo,min,max,mod:{userId:currentUser.id,userName:currentUser.nombre,emoji:currentUser.emoji,time:nowStr()}};
+  const updated={...item,nombre:nom,unidad:und,cant,costo,min,max,mod:{userId:currentUser.id,userName:currentUser.nombre,emoji:currentUser.emoji,time:nowStr()}};
   await fbSet(`inventario/insumos/${id}`,updated);
-  fbLog('edit',`Editó insumo: ${item.nombre} → ${cant} ${item.unidad}, costo: ${fmt$(costo)}`);
+  fbLog('edit',`Editó insumo: ${nom} → ${cant} ${und}, costo: ${fmt$(costo)}`);
   expIns=null; showToast('✅ Guardado y sincronizado');
 };
 
 window.delIns=async function(id){
-  if(!canDelete()){showToast('🔒 Sin permiso');return;}
+  if(!canEdit()){showToast('🔒 Sin permiso');return;}
   const item=S.insumos.find(i=>i.id===id);
-  if(!confirm(`¿Eliminar "${item?.nombre}"?`)) return;
+  if(!confirm(`⚠️ ¿Eliminar completamente "${item?.nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
   await fbRemove(`inventario/insumos/${id}`);
   fbLog('del',`Eliminó insumo: ${item.nombre}`);
   expIns=null; showToast('🗑 Eliminado');
@@ -1827,7 +1837,21 @@ window.openAddModal = function(){
             <option value="__new__">+ Nueva...</option>
           </select></div>
         <div class="field-col"><div class="flabel">Unidad</div>
-          <input class="finput" id="an-und" placeholder="Kg, Lt, Paq..."></div>
+          <select class="fselect" id="an-und">
+            <option value="Gr">Gr — Gramo</option>
+            <option value="Kg" selected>Kg — Kilogramo</option>
+            <option value="Ml">Ml — Mililitro</option>
+            <option value="Litro">Litro</option>
+            <option value="Lt">Lt — Litro (abrev.)</option>
+            <option value="Und">Und — Unidad</option>
+            <option value="Unid">Unid — Unidad</option>
+            <option value="Paq">Paq — Paquete</option>
+            <option value="Caja">Caja</option>
+            <option value="Botella">Botella</option>
+            <option value="Rollo">Rollo</option>
+            <option value="Fco">Fco — Frasco</option>
+            <option value="Lata">Lata</option>
+          </select></div>
       </div>
       <div class="field-row" style="margin-top:10px">
         <div class="field-col"><div class="flabel">Stock mínimo</div>
