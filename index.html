@@ -514,6 +514,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro)
     <div class="sec-hdr">📦 Cierre de <span>Insumos</span></div>
     <div id="cierre-ins-content" style="padding:0 0 100px"></div>
   </div>
+  <!-- CONSUMO INTERNO -->
+  <div id="tab-consumo" class="tab-panel">
+    <div class="sec-hdr">☕ Consumo <span>Interno</span></div>
+    <div id="consumo-content" style="padding:0 0 100px"></div>
+  </div>
     <div id="tab-historial" class="tab-panel">
       <div class="sec-hdr">📆 Historial <span>por Fecha</span></div>
       <div id="historial-content" style="padding:0 0 120px"></div>
@@ -535,6 +540,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro)
   <button class="nav-btn" id="nav-recetas" onclick="goTab('recetas')"><span class="nav-icon">📖</span>Recetas</button>
   <button class="nav-btn" id="nav-bebidas" onclick="goTab('bebidas')"><span class="nav-icon">☕</span>Bebidas</button>
   <button class="nav-btn" id="nav-cierre-ins" onclick="goTab('cierre-ins')"><span class="nav-icon">📦</span>Insumos</button>
+  <button class="nav-btn" id="nav-consumo" onclick="goTab('consumo')"><span class="nav-icon">☕</span>Consumo</button>
   <button class="nav-btn" id="nav-usuarios" onclick="goTab('usuarios')" style="display:none"><span class="nav-icon">👥</span>Usuarios</button>
 </div>
 
@@ -1268,7 +1274,7 @@ const DEF_PROD = [
 ];
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-let S = { usuarios:[], insumos:[], productos:[], bitacora:[], mermas:[], cierres:{}, ventas:{}, tasas:{usd:4200,ves:0.001,fecha:''} };
+let S = { usuarios:[], insumos:[], productos:[], bitacora:[], mermas:[], cierres:{}, ventas:{}, tasas:{usd:4200,ves:0.001,fecha:''}, consumoInterno:[] };
 let currentUser = null;
 let currentTab  = 'dashboard';
 let pinBuf = '', selUserId = null;
@@ -1390,6 +1396,12 @@ function subscribeAll(){
   // Tasas de cambio
   listeners.push(onValue(ref(db,'tasas'), snap=>{
     if(snap.exists()) S.tasas = snap.val();
+  }));
+  // Consumo Interno
+  listeners.push(onValue(ref(db,'consumoInterno'), snap=>{
+    const raw = snap.exists() ? snap.val() : {};
+    S.consumoInterno = Object.values(raw).sort((a,b)=>b.ts-a.ts);
+    if(currentTab==='consumo') renderConsumo();
   }));
 }
 
@@ -1542,6 +1554,7 @@ window.goTab = function(tab){
   if(tab==='historial') renderHistorial();
   if(tab==='ventas') renderVentas();
   if(tab==='ventas') renderVentas();
+  if(tab==='consumo') renderConsumo();
   // Show/hide usuarios nav button based on role
   const unav = document.getElementById('nav-usuarios');
   const utab = document.getElementById('tab-btn-usuarios');
@@ -1577,6 +1590,245 @@ function updateBadges(){
   if(bi){bi.textContent=bI;bi.style.display=bI>0?'flex':'none';}
   if(bp){bp.textContent=bP;bp.style.display=bP>0?'flex':'none';}
 }
+
+// ── CONSUMO INTERNO ───────────────────────────────────────────────────────────
+function renderConsumo(){
+  const el = document.getElementById('consumo-content'); if(!el) return;
+  const lista = S.consumoInterno || [];
+  const hoyStr = new Date().toISOString().split('T')[0];
+
+  // KPIs del día
+  const hoy = lista.filter(c => c.fecha === hoyStr);
+  const costoHoy = hoy.reduce((s,c) => s + (c.costoTotal||0), 0);
+  const pvpHoy   = hoy.reduce((s,c) => s + (c.pvpTotal||0),   0);
+  const totalHoy = hoy.length;
+
+  // KPIs del mes
+  const mes = hoyStr.slice(0,7);
+  const delMes = lista.filter(c => c.fecha && c.fecha.startsWith(mes));
+  const costoMes = delMes.reduce((s,c) => s + (c.costoTotal||0), 0);
+  const pvpMes   = delMes.reduce((s,c) => s + (c.pvpTotal||0),   0);
+
+  let h = '';
+
+  // Botón registrar
+  h += `<button onclick="abrirRegistroConsumo()" style="width:100%;padding:14px;border-radius:14px;border:none;background:var(--negro);color:var(--dorado);font-size:15px;font-weight:700;cursor:pointer;margin-bottom:14px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px">
+    ☕ Registrar Consumo Interno
+  </button>`;
+
+  // KPIs
+  h += `<div class="kpi-grid" style="margin-bottom:14px">
+    <div class="kpi blue"><div class="kpi-label">Consumos hoy</div><div class="kpi-val sm">${totalHoy}</div><div class="kpi-ico">☕</div></div>
+    <div class="kpi red"><div class="kpi-label">Costo hoy</div><div class="kpi-val sm" style="font-size:15px">${fmt$(costoHoy)}</div><div class="kpi-ico">💲</div></div>
+    <div class="kpi"><div class="kpi-label">PVP equiv. hoy</div><div class="kpi-val sm" style="font-size:15px">${fmt$(pvpHoy)}</div><div class="kpi-ico">🏷️</div></div>
+    <div class="kpi green"><div class="kpi-label">Costo del mes</div><div class="kpi-val sm" style="font-size:15px">${fmt$(costoMes)}</div><div class="kpi-ico">📅</div></div>
+  </div>`;
+
+  // Nota informativa
+  h += `<div style="background:#fff8e1;border-radius:12px;padding:11px 13px;margin-bottom:12px;border-left:4px solid #F9A825;font-size:12px;color:#555">
+    <b style="color:#E65100">ℹ️ ¿Cómo funciona?</b><br>
+    Los consumos internos <b>descuentan del inventario</b> pero <b>no se cuentan como ventas</b>. 
+    Puedes ver el costo real de lo que consumes y cuánto representa en precio de venta.
+  </div>`;
+
+  // Historial agrupado por fecha
+  const porFecha = {};
+  lista.forEach(c => {
+    const f = c.fecha || hoyStr;
+    if(!porFecha[f]) porFecha[f] = [];
+    porFecha[f].push(c);
+  });
+  const fechas = Object.keys(porFecha).sort().reverse();
+
+  if(!fechas.length){
+    h += `<div class="empty"><div class="empty-ico">☕</div><div class="empty-txt">Sin consumos registrados aún</div></div>`;
+  } else {
+    fechas.forEach(f => {
+      const items = porFecha[f];
+      const ctotal = items.reduce((s,c)=>s+(c.costoTotal||0),0);
+      const ptotal = items.reduce((s,c)=>s+(c.pvpTotal||0),0);
+      const esHoy  = f === hoyStr;
+      h += `<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-size:12px;font-weight:700;color:#555">${esHoy?'🟢 HOY':'📅'} ${fmtF(f)}</div>
+          <div style="font-size:11px;color:#888">Costo: <b style="color:#B71C1C">${fmt$(ctotal)}</b> · PVP: <b style="color:#1565C0">${fmt$(ptotal)}</b></div>
+        </div>`;
+      items.forEach(c => {
+        const u = S.usuarios.find(u=>u.id===c.usuarioId)||{emoji:'👤',nombre:c.usuarioNombre||'?',color:'#999'};
+        h += `<div style="background:#fff;border-radius:14px;margin-bottom:6px;padding:11px 13px;box-shadow:0 1px 6px rgba(0,0,0,.06);border-left:4px solid ${u.color||'#999'}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div style="width:28px;height:28px;border-radius:50%;background:${u.color||'#999'};display:flex;align-items:center;justify-content:center;font-size:14px">${u.emoji}</div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700">${c.productoNombre}${c.productoVariante?' · <span style="font-weight:400;color:#888">${c.productoVariante}</span>':''}</div>
+              <div style="font-size:10px;color:#aaa">${u.nombre} · ${c.hora||''}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:#B71C1C;font-weight:700">${fmt$(c.costoTotal||0)}</div>
+              <div style="font-size:10px;color:#1565C0">PVP ${fmt$(c.pvpTotal||0)}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <span style="font-size:11px;background:#f0f0f0;border-radius:8px;padding:2px 8px">×${c.cantidad} unid.</span>
+            ${c.nota?`<span style="font-size:11px;background:#fff8e1;border-radius:8px;padding:2px 8px;color:#E65100">"${c.nota}"</span>`:''}
+          </div>
+          ${canDelete()?`<button onclick="eliminarConsumo('${c.id}')" style="margin-top:7px;background:none;border:none;color:#ccc;font-size:11px;cursor:pointer">🗑 Eliminar registro</button>`:''}
+        </div>`;
+      });
+      h += `</div>`;
+    });
+  }
+
+  // Resumen mensual por persona
+  if(delMes.length > 0){
+    const porPersona = {};
+    delMes.forEach(c=>{
+      const k = c.usuarioId||c.usuarioNombre;
+      if(!porPersona[k]) porPersona[k]={nombre:c.usuarioNombre,emoji:'👤',color:'#999',costo:0,pvp:0,count:0};
+      const u = S.usuarios.find(u=>u.id===c.usuarioId);
+      if(u){porPersona[k].emoji=u.emoji;porPersona[k].color=u.color||ROL_CLR[u.rol]||'#999';}
+      porPersona[k].costo += c.costoTotal||0;
+      porPersona[k].pvp   += c.pvpTotal||0;
+      porPersona[k].count++;
+    });
+    h += `<div style="background:#1e1e1e;border-radius:16px;padding:14px;margin-top:8px;color:#fff">
+      <div style="font-family:'Playfair Display',serif;font-size:14px;color:var(--dorado);margin-bottom:10px">📊 Resumen del mes — por persona</div>`;
+    Object.values(porPersona).sort((a,b)=>b.costo-a.costo).forEach(p=>{
+      h += `<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid #2a2a2a">
+        <div style="width:30px;height:30px;border-radius:50%;background:${p.color};display:flex;align-items:center;justify-content:center;font-size:14px">${p.emoji}</div>
+        <div style="flex:1"><div style="font-size:12px;font-weight:600">${p.nombre}</div><div style="font-size:10px;color:#888">${p.count} consumos</div></div>
+        <div style="text-align:right"><div style="font-size:12px;color:#ef9a9a;font-weight:700">${fmt$(p.costo)}</div><div style="font-size:10px;color:#90caf9">PVP ${fmt$(p.pvp)}</div></div>
+      </div>`;
+    });
+    h += `<div style="display:flex;justify-content:space-between;padding:8px 0 0;font-size:12px">
+      <span style="color:#888">Total del mes</span>
+      <span style="color:#ef9a9a;font-weight:700">${fmt$(costoMes)} costo · <span style="color:#90caf9">${fmt$(pvpMes)} PVP</span></span>
+    </div></div>`;
+  }
+
+  el.innerHTML = h;
+}
+
+window.abrirRegistroConsumo = function(){
+  const modal = document.getElementById('modal-add');
+  const title = document.getElementById('modal-add-title');
+  const body  = document.getElementById('modal-add-body');
+  if(!modal||!title||!body) return;
+  title.textContent = '☕ Registrar Consumo Interno';
+
+  const prods = S.productos.map(p=>({id:p.id, label:`${p.nombre}${p.variante?' · '+p.variante:''}`, precio:p.precio||0, costo:p.costo||0}));
+  const opsProd = prods.map(p=>`<option value="${p.id}" data-precio="${p.precio}" data-costo="${p.costo}">${p.label}</option>`).join('');
+
+  body.innerHTML = `
+    <div class="field-col"><div class="flabel">Producto consumido</div>
+      <select class="fselect" id="ci-prod" onchange="actualizarCostoConsumo()">
+        ${opsProd}
+      </select>
+    </div>
+    <div class="field-row" style="margin-top:10px">
+      <div class="field-col"><div class="flabel">Cantidad</div>
+        <input class="finput yellow" type="number" id="ci-cant" value="1" min="1" step="1" oninput="actualizarCostoConsumo()">
+      </div>
+      <div class="field-col"><div class="flabel">¿Quién lo toma?</div>
+        <select class="fselect" id="ci-quien">
+          ${S.usuarios.map(u=>`<option value="${u.id}" ${u.id===currentUser?.id?'selected':''}>${u.emoji} ${u.nombre}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="field-col" style="margin-top:10px"><div class="flabel">Nota (opcional)</div>
+      <input class="finput" id="ci-nota" placeholder="Ej: cortado doble, sin azúcar...">
+    </div>
+    <div style="background:#f8f4ee;border-radius:12px;padding:12px;margin-top:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0">
+        <span style="color:#888">Costo unitario:</span>
+        <span id="ci-costo-unit" style="font-weight:700;color:#B71C1C">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0">
+        <span style="color:#888">Precio venta equiv.:</span>
+        <span id="ci-pvp-unit" style="font-weight:700;color:#1565C0">$0.00</span>
+      </div>
+      <div style="border-top:1px solid #e0d8cc;margin:6px 0"></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0">
+        <span style="color:#555;font-weight:600">Costo total:</span>
+        <span id="ci-costo-total" style="font-weight:700;color:#B71C1C;font-size:16px">$0.00</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0">
+        <span style="color:#555;font-weight:600">PVP total (no cobrado):</span>
+        <span id="ci-pvp-total" style="font-weight:700;color:#1565C0">$0.00</span>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#aaa;margin-top:8px">⚠️ Esto <b>descontará del inventario</b> pero <b>no se registrará como venta</b>.</div>
+    <button class="btn-primary" onclick="guardarConsumoInterno()" style="background:var(--negro)">☕ Registrar Consumo</button>
+    <button class="btn-primary" onclick="closeModal('modal-add')" style="background:transparent;border:1px solid #ddd;color:#888;margin-top:6px">Cancelar</button>
+  `;
+  openModal('modal-add');
+  actualizarCostoConsumo();
+};
+
+window.actualizarCostoConsumo = function(){
+  const sel = document.getElementById('ci-prod');
+  const cant = parseFloat(document.getElementById('ci-cant')?.value)||1;
+  if(!sel) return;
+  const opt = sel.options[sel.selectedIndex];
+  const costo = parseFloat(opt?.dataset?.costo)||0;
+  const precio = parseFloat(opt?.dataset?.precio)||0;
+  const ct = costo*cant, pt = precio*cant;
+  const el = id => document.getElementById(id);
+  if(el('ci-costo-unit'))  el('ci-costo-unit').textContent  = fmt$(costo);
+  if(el('ci-pvp-unit'))    el('ci-pvp-unit').textContent    = fmt$(precio);
+  if(el('ci-costo-total')) el('ci-costo-total').textContent = fmt$(ct);
+  if(el('ci-pvp-total'))   el('ci-pvp-total').textContent   = fmt$(pt);
+};
+
+window.guardarConsumoInterno = async function(){
+  const prodId   = document.getElementById('ci-prod')?.value;
+  const cant     = parseFloat(document.getElementById('ci-cant')?.value)||1;
+  const quienId  = document.getElementById('ci-quien')?.value;
+  const nota     = document.getElementById('ci-nota')?.value?.trim()||'';
+
+  const prod  = S.productos.find(p=>p.id===prodId);
+  const quien = S.usuarios.find(u=>u.id===quienId)||currentUser;
+  if(!prod||!quien){ showToast('⚠ Selecciona producto y persona'); return; }
+
+  const costoU = prod.costo||0;
+  const pvpU   = prod.precio||0;
+  const id     = 'ci'+Date.now();
+  const now    = new Date();
+  const entry  = {
+    id,
+    productoId:      prod.id,
+    productoNombre:  prod.nombre,
+    productoVariante:prod.variante||'',
+    cantidad:        cant,
+    costoUnitario:   costoU,
+    pvpUnitario:     pvpU,
+    costoTotal:      costoU * cant,
+    pvpTotal:        pvpU   * cant,
+    usuarioId:       quien.id,
+    usuarioNombre:   quien.nombre,
+    nota,
+    fecha: now.toISOString().split('T')[0],
+    hora:  now.toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit'}),
+    ts:    Date.now(),
+  };
+
+  // Descontar del inventario (campo "vend" para que baje el stock disponible)
+  // Se suma a vend sin contar como venta en reportes — marcado como consumo
+  const nuevoProd = {...prod, consumo:(prod.consumo||0)+cant,
+    mod:{userId:currentUser.id,userName:currentUser.nombre,emoji:currentUser.emoji,time:nowStr()}};
+  await fbSet(`inventario/productos/${prod.id}`, nuevoProd);
+  await fbSet(`consumoInterno/${id}`, entry);
+  fbLog('edit', `☕ Consumo interno: ${cant}× ${prod.nombre}${prod.variante?' · '+prod.variante:''} por ${quien.nombre} — costo ${fmt$(entry.costoTotal)}`);
+
+  closeModal('modal-add');
+  showToast(`☕ Consumo registrado — ${fmt$(entry.costoTotal)} de costo`);
+};
+
+window.eliminarConsumo = async function(id){
+  if(!canDelete()){ showToast('🔒 Sin permiso'); return; }
+  if(!confirm('¿Eliminar este registro de consumo?')) return;
+  await fbRemove(`consumoInterno/${id}`);
+  showToast('🗑 Registro eliminado');
+};
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDash(){
