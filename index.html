@@ -489,6 +489,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--negro);color:var(--negro)
     <!-- VENTAS DIARIAS -->
     <div id="tab-ventas" class="tab-panel">
       <div class="sec-hdr">💰 Ventas & <span>Caja</span></div>
+      <div style="padding:0 16px 0">
+        <button onclick="abrirCuentasPorCobrar()" style="width:100%;margin-top:10px;padding:13px;border-radius:14px;border:none;background:linear-gradient(135deg,#B8860B,#D4A017);color:#fff;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.3px">🤝 Cuentas por Cobrar (Créditos)</button>
+      </div>
       <div id="ventas-content" style="padding:0 0 120px"></div>
     </div>
     <!-- REPORTES -->
@@ -2893,6 +2896,29 @@ function renderVentas(){
   /* Resultado del día en tiempo real */
   h += '<div id="resultado-neto-dia" style="margin-top:10px"></div>';
 
+  /* Ventas a Crédito / Fiado */
+  var creditosDia = (registroDia && registroDia.creditos) ? registroDia.creditos : [];
+  window._creditosDelDia = JSON.parse(JSON.stringify(creditosDia));
+  var totalCreditoDia = window._creditosDelDia.reduce(function(s,c){ return s+(c.monto||0); },0);
+  h += '<div style="background:#fffbea;border-radius:12px;padding:12px 14px;margin-top:14px;border:1px solid #f0e0a0">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+  h += '<span class="cierre-label" style="color:#7a5c00;font-weight:700">🤝 Ventas a Crédito / Fiado</span>';
+  h += '<button onclick="abrirAgregarCredito()" style="font-size:11px;padding:4px 10px;border-radius:8px;border:none;background:#B8860B;color:#fff;font-weight:700;cursor:pointer">+ Agregar</button>';
+  h += '</div>';
+  if(window._creditosDelDia.length){
+    h += '<div id="lista-creditos-dia" style="margin-top:8px">';
+    window._creditosDelDia.forEach(function(c, idx){
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dashed #f0e0a0;font-size:12px">';
+      h += '<span style="color:#555">'+c.cliente+' — '+(c.mercancia||'')+'</span>';
+      h += '<div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;color:#B8860B">'+fmtCOP(c.monto)+'</span>';
+      h += '<button onclick="quitarCreditoDia('+idx+')" style="font-size:10px;padding:2px 7px;border-radius:6px;border:none;background:#fce4ec;color:#B71C1C;cursor:pointer">✕</button></div>';
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+  h += '<div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px;padding-top:6px;border-top:1px solid #f0e0a0"><span style="font-weight:700;color:#7a5c00">Total a crédito hoy</span><span id="total-credito-dia" style="font-weight:700;color:#B8860B">'+fmtCOP(totalCreditoDia)+'</span></div>';
+  h += '</div>';
+
   /* Notas */
   h += '<div style="margin-top:12px"><div style="font-size:11px;color:#888;margin-bottom:4px">📝 Observaciones (opcional)</div>';
   h += '<textarea id="v-notas" rows="2" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:10px;font-family:inherit;font-size:12px;resize:none">'+(registroDia?registroDia.notas||'':'')+'</textarea></div>';
@@ -3131,6 +3157,9 @@ function calcVentasTotales(){
   });
   var elVes=document.getElementById('conv-ef_ves');
   if(elVes) elVes.textContent='= '+fmtCOP(ef_ves_cop);
+  var totalCredito = (window._creditosDelDia||[]).reduce(function(s,c){ return s+(c.monto||0); },0);
+  var tcEl = document.getElementById('total-credito-dia');
+  if(tcEl) tcEl.textContent = fmtCOP(totalCredito);
   var totalIngresos=v('v-ef_cop')+ef_usd_cop+ef_ves_cop+v('v-nequi')+v('v-bancol')+zelle_cop+v('v-otros');
   var totalGastos=v('g-insumos')+v('g-bebidas')+v('g-empaques')+v('g-nomina')+v('g-domicilios')+v('g-servicios')+v('g-aseo')+v('g-publicidad')+v('g-mant')+v('g-otros');
   var ventaBruta=v('v-venta-bruta');
@@ -3143,21 +3172,23 @@ function calcVentasTotales(){
   if(resEl){
     var utilColor=utilidad>=0?'#1E5631':'#B71C1C';
     var sep=utilidad>=0?'#c8e6c9':'#ffcdd2';
-    var diferencia=ventaBruta-totalIngresos-totalGastos;
+    var diferencia=ventaBruta-totalCredito-totalIngresos-totalGastos;
     var difLabel,difColor,difBg,difIcono;
     if(Math.abs(diferencia)<1){ difLabel='Cuadra correctamente'; difColor='#1E5631'; difBg='#e8f5e9'; difIcono='✅'; }
     else if(diferencia>0){ difLabel='Falta por registrar (caja o gasto) / posible faltante'; difColor='#B71C1C'; difBg='#fce4ec'; difIcono='⚠️'; }
     else { difLabel='Hay un sobrante / revisar registro'; difColor='#1565C0'; difBg='#e3f2fd'; difIcono='ℹ️'; }
+    var creditoLinea = totalCredito>0 ? ('<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:#7a5c00">🤝 A Crédito (no cuenta como ingreso)</span><span style="font-weight:700;color:#B8860B">−'+fmtCOP(totalCredito)+'</span></div>') : '';
     resEl.innerHTML='<div style="font-size:10px;font-weight:700;color:#1F4E79;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📊 Resumen del Día</div>'
       +'<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:#555">💰 Total Ventas (POS)</span><span style="font-weight:700;color:#1F4E79">'+fmtCOP(ventaBruta)+'</span></div>'
       +'<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:#555">💵 Total Ingresos</span><span style="font-weight:700;color:#1E5631">'+fmtCOP(totalIngresos)+'</span></div>'
+      +creditoLinea
       +'<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:#555">📊 Total Egresos</span><span style="font-weight:700;color:#B71C1C">−'+fmtCOP(totalGastos)+'</span></div>'
       +'<div style="display:flex;justify-content:space-between;padding:8px 0 4px;font-size:15px;border-top:2px solid '+sep+';margin-top:6px">'
       +'<span style="font-weight:700;color:'+utilColor+'">💹 Utilidad Neta</span>'
       +'<span style="font-weight:700;color:'+utilColor+'">'+fmtCOP(utilidad)+'</span></div>'
       +'<div style="background:'+difBg+';border-radius:10px;padding:10px 12px;margin-top:10px">'
       +'<div style="display:flex;justify-content:space-between;align-items:center">'
-      +'<span style="font-size:11px;font-weight:700;color:'+difColor+'">'+difIcono+' Diferencia (Ventas POS − Ingresos − Egresos)</span>'
+      +'<span style="font-size:11px;font-weight:700;color:'+difColor+'">'+difIcono+' Diferencia (Ventas POS − Crédito − Ingresos − Egresos)</span>'
       +'<span style="font-weight:700;color:'+difColor+';font-size:14px">'+(diferencia>0?'+':'')+fmtCOP(diferencia)+'</span>'
       +'</div>'
       +'<div style="font-size:10px;color:'+difColor+';margin-top:2px">'+difLabel+'</div>'
@@ -3186,6 +3217,7 @@ function guardarVentasDia(){
   var registro={
     fecha:fechaGuardar,ts:Date.now(),tasas:tasas,ventas:ventas,gastos:gastos,
     gastosDetalle:window._gastosDetalleActual||{},
+    creditos: window._creditosDelDia || [],
     ventaBruta:Math.round(ventaBruta),totalVentas:Math.round(totalVentas),
     totalGastos:Math.round(totalGastos),utilidad:Math.round(ventaBruta-totalGastos),
     notas:notas,creadoPor:currentUser?currentUser.nombre:'Sistema',
@@ -3194,6 +3226,14 @@ function guardarVentasDia(){
   fbSet('ventas/'+fechaGuardar,registro).then(function(){
     showToast(fechaGuardar===hoy()?'✅ Cierre del día guardado':'✅ Cierre del '+fechaGuardar+' guardado');
     fbLog('add','Cierre '+fechaGuardar+' — Ventas: '+fmtCOP(ventaBruta)+' · Ing: '+fmtCOP(totalVentas)+' · Gas: '+fmtCOP(totalGastos));
+    /* Empujar créditos nuevos (sin _key) a la colección global de Cuentas por Cobrar */
+    (window._creditosDelDia||[]).forEach(function(c){
+      if(c._key) return; /* ya fue guardado antes */
+      if(!db) return;
+      var r = firebase.database().ref('cuentasPorCobrar').push();
+      var creditoGuardado = Object.assign({}, c, {abonos:c.abonos||[], saldoPendiente:c.monto});
+      r.set(creditoGuardado);
+    });
   });
 }
 
@@ -5526,6 +5566,181 @@ window.descargarInventarioCompleto = function() {
   URL.revokeObjectURL(url);
   showToast('✅ Inventario descargado');
 };
+/* ====== CUENTAS POR COBRAR (créditos pendientes + abonos) ====== */
+window.abrirCuentasPorCobrar = function(){
+  var modal = document.getElementById('modal-add');
+  var title = document.getElementById('modal-add-title');
+  var body  = document.getElementById('modal-add-body');
+  if(!modal||!title||!body) return;
+  title.textContent = '🤝 Cuentas por Cobrar';
+  body.innerHTML = '<div style="text-align:center;padding:20px;color:#888">Cargando...</div>';
+  openModal('modal-add');
+  firebase.database().ref('cuentasPorCobrar').once('value').then(function(snap){
+    var lista = [];
+    if(snap.exists()){
+      snap.forEach(function(child){ lista.push(Object.assign({_key:child.key}, child.val())); });
+    }
+    lista.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+    window._cuentasPorCobrarData = lista;
+    renderCuentasPorCobrar();
+  });
+};
+
+window.renderCuentasPorCobrar = function(){
+  var body = document.getElementById('modal-add-body');
+  if(!body) return;
+  var lista = window._cuentasPorCobrarData || [];
+  var filtro = window._filtroCobrar || 'pendientes';
+  var pendientes = lista.filter(function(c){ return (c.saldoPendiente||0) > 0; });
+  var pagados    = lista.filter(function(c){ return (c.saldoPendiente||0) <= 0; });
+  var totalPendiente = pendientes.reduce(function(s,c){ return s+(c.saldoPendiente||0); },0);
+
+  var h = '';
+  h += '<div style="background:#fff8e1;border-radius:10px;padding:12px;margin-bottom:12px;text-align:center">';
+  h += '<div style="font-size:11px;color:#7a5c00">Total pendiente por cobrar</div>';
+  h += '<div style="font-size:22px;font-weight:700;color:#B8860B">'+fmtCOP(totalPendiente)+'</div>';
+  h += '<div style="font-size:10px;color:#7a5c00;margin-top:2px">'+pendientes.length+' cuenta(s) pendiente(s)</div>';
+  h += '</div>';
+
+  h += '<div style="display:flex;gap:8px;margin-bottom:12px">';
+  h += '<button onclick="window._filtroCobrar=\'pendientes\';renderCuentasPorCobrar()" style="flex:1;padding:8px;border-radius:8px;border:none;background:'+(filtro==='pendientes'?'#B8860B':'#eee')+';color:'+(filtro==='pendientes'?'#fff':'#888')+';font-size:12px;font-weight:700;cursor:pointer">Pendientes ('+pendientes.length+')</button>';
+  h += '<button onclick="window._filtroCobrar=\'pagados\';renderCuentasPorCobrar()" style="flex:1;padding:8px;border-radius:8px;border:none;background:'+(filtro==='pagados'?'#1E5631':'#eee')+';color:'+(filtro==='pagados'?'#fff':'#888')+';font-size:12px;font-weight:700;cursor:pointer">Pagados ('+pagados.length+')</button>';
+  h += '</div>';
+
+  var mostrar = filtro==='pendientes' ? pendientes : pagados;
+  if(!mostrar.length){
+    h += '<div style="text-align:center;padding:20px;color:#888;font-size:12px">Sin cuentas en esta categoría</div>';
+  } else {
+    mostrar.forEach(function(c){
+      var pct = c.monto>0 ? Math.round(((c.monto-c.saldoPendiente)/c.monto)*100) : 0;
+      h += '<div style="background:#fafafa;border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid '+(c.saldoPendiente>0?'#B8860B':'#1E5631')+'">';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center">';
+      h += '<div style="font-size:13px;font-weight:700">'+c.cliente+'</div>';
+      h += '<div style="font-size:12px;font-weight:700;color:'+(c.saldoPendiente>0?'#B8860B':'#1E5631')+'">'+fmtCOP(c.saldoPendiente)+'</div>';
+      h += '</div>';
+      h += '<div style="font-size:10px;color:#888;margin-top:2px">'+(c.mercancia||'')+' · '+c.fecha+'</div>';
+      h += '<div style="font-size:10px;color:#aaa;margin-top:2px">Total: '+fmtCOP(c.monto)+' · Abonado: '+pct+'%</div>';
+      if(c.abonos && c.abonos.length){
+        h += '<div style="font-size:10px;color:#1E5631;margin-top:4px">';
+        h += c.abonos.map(function(a){ return '✓ '+fmtCOP(a.monto)+' el '+a.fecha+' ('+a.formaPago+')'; }).join('<br>');
+        h += '</div>';
+      }
+      if(c.saldoPendiente>0){
+        h += '<button onclick="abrirRegistrarAbono(\''+c._key+'\')" style="margin-top:8px;width:100%;padding:7px;border-radius:8px;border:none;background:#1E5631;color:#fff;font-size:11px;font-weight:700;cursor:pointer">+ Registrar Abono</button>';
+      }
+      h += '</div>';
+    });
+  }
+  h += '<button class="btn-primary" style="background:transparent;border:1px solid #ddd;color:#888;margin-top:6px" onclick="closeModal(\'modal-add\')">Cerrar</button>';
+  body.innerHTML = h;
+};
+
+window.abrirRegistrarAbono = function(key){
+  var c = (window._cuentasPorCobrarData||[]).find(function(x){ return x._key===key; });
+  if(!c) return;
+  var title = document.getElementById('modal-add-title');
+  var body  = document.getElementById('modal-add-body');
+  if(!title||!body) return;
+  title.textContent = '💰 Abono — '+c.cliente;
+  window._cuentaAbonoActual = key;
+  var h = '';
+  h += '<div style="background:#f0f8f4;border-radius:10px;padding:10px;margin-bottom:12px;text-align:center">';
+  h += '<div style="font-size:11px;color:#888">Saldo pendiente</div>';
+  h += '<div style="font-size:18px;font-weight:700;color:#B8860B">'+fmtCOP(c.saldoPendiente)+'</div>';
+  h += '</div>';
+  h += '<div class="field-col" style="margin-bottom:10px"><div class="flabel">Monto del abono</div><input class="finput" type="text" inputmode="numeric" id="ab-monto" placeholder="0" oninput="formatearInputMiles(this)"></div>';
+  h += '<div class="field-col" style="margin-bottom:14px"><div class="flabel">Forma de pago</div><select class="finput" id="ab-forma">';
+  h += '<option value="Efectivo COP">💴 Efectivo COP</option>';
+  h += '<option value="Nequi/Daviplata">📱 Nequi/Daviplata</option>';
+  h += '<option value="Bancolombia">🏦 Bancolombia</option>';
+  h += '<option value="Zelle">💱 Zelle</option>';
+  h += '<option value="Otros">🏛️ Otros</option>';
+  h += '</select></div>';
+  h += '<button class="btn-primary" style="background:#1E5631" onclick="confirmarAbono()">✅ Confirmar Abono</button>';
+  h += '<button class="btn-primary" style="background:transparent;border:1px solid #ddd;color:#888;margin-top:6px" onclick="renderCuentasPorCobrar()">Cancelar</button>';
+  body.innerHTML = h;
+};
+
+window.confirmarAbono = function(){
+  var key = window._cuentaAbonoActual;
+  var c = (window._cuentasPorCobrarData||[]).find(function(x){ return x._key===key; });
+  if(!c) return;
+  var monto = valorNumerico('ab-monto');
+  var forma = (document.getElementById('ab-forma')||{}).value||'Efectivo COP';
+  if(!monto || monto<=0){ showToast('Ingresa un monto válido'); return; }
+  if(monto > c.saldoPendiente){ showToast('El abono no puede ser mayor al saldo pendiente'); return; }
+
+  var fechaHoy = hoy();
+  var nuevoAbono = { monto:monto, formaPago:forma, fecha:fechaHoy, ts:Date.now(), registradoPor: currentUser?currentUser.nombre:'—' };
+  var abonosNuevos = (c.abonos||[]).concat([nuevoAbono]);
+  var nuevoSaldo = Math.max(0, c.saldoPendiente - monto);
+
+  firebase.database().ref('cuentasPorCobrar/'+key).update({
+    abonos: abonosNuevos,
+    saldoPendiente: nuevoSaldo
+  }).then(function(){
+    /* Sumar el abono como ingreso real del día de hoy */
+    var mapaForma = {'Efectivo COP':'ef_cop','Nequi/Daviplata':'nequi','Bancolombia':'bancol','Zelle':'zelle','Otros':'otros'};
+    var campoIngreso = mapaForma[forma]||'otros';
+    firebase.database().ref('ventas/'+fechaHoy).once('value').then(function(snapDia){
+      var regDia = snapDia.val() || {fecha:fechaHoy, ventas:{}, gastos:{}, ts:Date.now()};
+      regDia.ventas = regDia.ventas || {};
+      regDia.ventas[campoIngreso] = (regDia.ventas[campoIngreso]||0) + monto;
+      regDia.ventas.abonosCredito = (regDia.ventas.abonosCredito||0) + monto;
+      regDia.totalVentas = Math.round((regDia.totalVentas||0) + monto);
+      firebase.database().ref('ventas/'+fechaHoy).set(regDia).then(function(){
+        fbLog('add','Abono de '+c.cliente+': '+fmtCOP(monto)+' ('+forma+')');
+        showToast('✅ Abono registrado — sumado a Ingresos de hoy');
+        c.abonos = abonosNuevos; c.saldoPendiente = nuevoSaldo;
+        renderCuentasPorCobrar();
+      });
+    });
+  }).catch(function(e){ showToast('Error: '+e.message); });
+};
+
+/* ====== VENTAS A CRÉDITO / FIADO (dentro del cierre del día) ====== */
+window.abrirAgregarCredito = function(){
+  var modal = document.getElementById('modal-add');
+  var title = document.getElementById('modal-add-title');
+  var body  = document.getElementById('modal-add-body');
+  if(!modal||!title||!body) return;
+  title.textContent = '🤝 Nueva Venta a Crédito';
+  var h = '';
+  h += '<div style="background:#fff8e1;border-radius:10px;padding:10px;margin-bottom:14px;font-size:11px;color:#7a5c00">Esta venta cuenta como Venta POS, pero NO se contará como dinero en caja hasta que se registre el pago en "Cuentas por Cobrar".</div>';
+  h += '<div class="field-col" style="margin-bottom:10px"><div class="flabel">Nombre del cliente</div><input class="finput" id="cr-cliente" placeholder="Ej: Juan Pérez"></div>';
+  h += '<div class="field-col" style="margin-bottom:10px"><div class="flabel">Mercancía / Descripción</div><input class="finput" id="cr-mercancia" placeholder="Ej: 2 malteadas, 1 granizado"></div>';
+  h += '<div class="field-col" style="margin-bottom:10px"><div class="flabel">Monto a crédito</div><input class="finput" type="text" inputmode="numeric" id="cr-monto" placeholder="0" oninput="formatearInputMiles(this)"></div>';
+  h += '<div class="field-col" style="margin-bottom:14px"><div class="flabel">Teléfono (opcional)</div><input class="finput" id="cr-telefono" placeholder="Para recordatorios"></div>';
+  h += '<button class="btn-primary" style="background:#B8860B" onclick="guardarCreditoNuevo()">💾 Agregar a la lista</button>';
+  h += '<button class="btn-primary" style="background:transparent;border:1px solid #ddd;color:#888;margin-top:6px" onclick="closeModal(\'modal-add\')">Cancelar</button>';
+  body.innerHTML = h;
+  openModal('modal-add');
+};
+
+window.guardarCreditoNuevo = function(){
+  var cliente  = (document.getElementById('cr-cliente')||{}).value||'';
+  var mercancia= (document.getElementById('cr-mercancia')||{}).value||'';
+  var monto    = valorNumerico('cr-monto');
+  var telefono = (document.getElementById('cr-telefono')||{}).value||'';
+  if(!cliente.trim()){ showToast('Ingresa el nombre del cliente'); return; }
+  if(!monto || monto<=0){ showToast('Ingresa un monto válido'); return; }
+  if(!window._creditosDelDia) window._creditosDelDia = [];
+  window._creditosDelDia.push({
+    cliente: cliente.trim(), mercancia: mercancia.trim(), monto: monto, telefono: telefono.trim(),
+    fecha: window._fechaCierre || hoy(), ts: Date.now(),
+    registradoPor: currentUser ? currentUser.nombre : '—'
+  });
+  closeModal('modal-add');
+  showToast('✅ Crédito agregado');
+  setTimeout(function(){ if(typeof renderVentas==='function') renderVentas(); }, 50);
+};
+
+window.quitarCreditoDia = function(idx){
+  if(!window.confirm('¿Quitar este crédito de la lista?')) return;
+  window._creditosDelDia.splice(idx,1);
+  if(typeof renderVentas==='function') renderVentas();
+};
+
 </script>
 </body>
 </html>
