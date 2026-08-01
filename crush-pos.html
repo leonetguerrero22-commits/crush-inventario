@@ -4060,56 +4060,87 @@ APP.vaciarPR = function(){
 APP.cobrarPR = function(){
   var r = totalOrdenPR();
   if(r.n <= 0){ toast('La orden está vacía'); return; }
-  /* verificar que haya turno abierto */
   if(!APP.turnoActivo || !APP.turnoData || APP.turnoData.estado !== 'abierta'){
-    toast('Abre la caja primero para cobrar');
-    return;
+    toast('Abre la caja primero para cobrar'); return;
   }
-  var items = {};
-  Object.keys(APP._ordenPR).forEach(function(id){
-    var p = APP.prods[id];
-    items[id] = {nombre:p.nombre, cant:APP._ordenPR[id], precio:p.venta||0, ambiente:ambienteDe(p), cuenta:seCuenta(p)};
-  });
   var h = '<div style="text-align:center;margin-bottom:14px"><div style="font-size:12px;color:var(--gris)">Total a cobrar</div><div style="font-size:32px;font-weight:800;color:var(--coral)">'+fmtCOP(r.total)+'</div></div>';
   h += '<div class="flabel">¿Cómo pagó?</div>';
-  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  var metodos = [['efectivo','💵 Efectivo'],['pagomovil','📱 Pago móvil'],['tarjeta','💳 Tarjeta'],['transferencia','🏦 Transferencia']];
-  metodos.forEach(function(m){
-    h += '<button class="btn" style="margin:0;background:var(--mar-2)" onclick="APP.confirmarCobroPR(\''+m[0]+'\')">'+m[1]+'</button>';
+  h += '<div class="metodos">';
+  METODOS_ING.forEach(function(m){
+    h += '<button onclick="APP.elegirMetodoPR(\''+m.id+'\')" id="mpr-'+m.id+'">'+m.tx+'</button>';
   });
   h += '</div>';
-  h += '<button class="btn sec" style="margin-top:10px" onclick="APP.cerrarModal()">Cancelar</button>';
-  abrirModal('💵 Cobrar', h);
+  /* zona de datos extra (ref para transferencias/pagomóvil) */
+  h += '<div id="pr-cobro-extra" style="margin-top:10px"></div>';
+  h += '<button class="btn" style="margin-top:14px;background:var(--ok)" onclick="APP.confirmarCobroPR()">✅ Confirmar cobro</button>';
+  h += '<button class="btn sec" onclick="APP.cerrarModal()">Cancelar</button>';
+  abrirModal('💵 Cobrar '+fmtCOP(r.total), h);
+  APP._metodoPR = 'efectivo';
+  APP.elegirMetodoPR('efectivo');
 };
-APP.confirmarCobroPR = function(metodo){
+APP.elegirMetodoPR = function(mid){
+  APP._metodoPR = mid;
+  METODOS_ING.forEach(function(m){
+    var b = document.getElementById('mpr-'+m.id);
+    if(b) b.className = (m.id === mid) ? 'sel' : '';
+  });
+  /* pedir referencia y banco para métodos no-efectivo-cash */
+  var extra = document.getElementById('pr-cobro-extra');
+  if(!extra) return;
+  var e = '';
+  if(mid === 'bs'){
+    e += '<div class="flabel">Banco (opcional)</div><input class="inp" id="pr-banco" type="text" placeholder="Ej: Banesco, Mercantil…">';
+    e += '<div class="flabel">Referencia (opcional)</div><input class="inp" id="pr-ref" type="text" inputmode="numeric" placeholder="Últimos dígitos">';
+  } else if(mid === 'bancol' || mid === 'zelle'){
+    e += '<div class="flabel">Referencia (opcional)</div><input class="inp" id="pr-ref" type="text" placeholder="Referencia del pago">';
+  }
+  extra.innerHTML = e;
+};
+APP.confirmarCobroPR = function(){
   var r = totalOrdenPR();
+  if(r.n <= 0){ return; }
+  var metodo = APP._metodoPR || 'efectivo';
+  var info = metodoInfo(metodo);
   var ahora = Date.now();
   var ventaId = 'v_'+ahora;
+  var ref = (document.getElementById('pr-ref')||{}).value || '';
+  var banco = (document.getElementById('pr-banco')||{}).value || '';
+  /* detalle de items + descuento de inventario */
   var items = {};
   var updates = {};
+  var resumen = [];
   Object.keys(APP._ordenPR).forEach(function(id){
     var p = APP.prods[id];
     var cant = APP._ordenPR[id];
     items[id] = {nombre:p.nombre, cant:cant, precio:p.venta||0};
-    /* descontar inventario SOLO si el producto se cuenta (puede quedar negativo) */
+    resumen.push(cant+'× '+p.nombre);
     if(seCuenta(p)){
-      var nuevo = (p.almacen||0) - cant;
-      updates['inventario/productos/'+id+'/almacen'] = nuevo;
+      updates['inventario/productos/'+id+'/almacen'] = (p.almacen||0) - cant;
     }
   });
-  /* registrar la venta */
-  var venta = {
+  /* 1) la venta detallada en ventasPOS */
+  updates['ventasPOS/'+ventaId] = {
     id: ventaId, ts: ahora, fecha: fechaOperativa(),
-    origen: 'pedido_rapido', metodo: metodo,
-    total: r.total, items: items,
-    usuario: APP.user.nombre, turnoId: APP.turnoActivo||''
+    origen: 'pedido_rapido', metodo: metodo, total: r.total,
+    items: items, usuario: APP.user.nombre, turnoId: APP.turnoActivo
   };
-  updates['ventasPOS/'+ventaId] = venta;
+  /* 2) el ingreso en la CAJA del turno (esto lo cuenta el cierre) */
+  var mov = {
+    tipo: 'ingreso', monto: r.total, motivo: 'Venta · '+resumen.slice(0,3).join(', ')+(resumen.length>3?'…':''),
+    metodo: metodo, ts: ahora, fecha: fechaOperativa(),
+    usuario: APP.user.nombre, origen: 'pedido_rapido', ventaId: ventaId
+  };
+  if(info.moneda !== 'COP') mov.moneda = info.moneda;
+  if(metodo === 'bs' && banco) mov.banco = banco;
+  if(ref) mov.ref = ref;
+  var movKey = db.ref('caja/turnos/'+APP.turnoActivo+'/movimientos').push().key;
+  updates['caja/turnos/'+APP.turnoActivo+'/movimientos/'+movKey] = mov;
+
   db.ref().update(updates).then(function(){
-    log('venta', 'Pedido rápido '+fmtCOP(r.total)+' ('+metodo+')');
+    log('venta', 'Pedido rápido '+fmtCOP(r.total)+' ('+metodo+') → caja');
     APP._ordenPR = {};
     APP.cerrarModal();
-    toast('✅ Venta cobrada · '+fmtCOP(r.total));
+    toast('✅ Cobrado '+fmtCOP(r.total)+' · va a caja');
     renderGridPR(); renderBarraPR();
   }).catch(function(e){ toast('⚠️ '+String(e&&e.message||e).slice(0,50)); });
 };
