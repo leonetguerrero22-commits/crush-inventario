@@ -411,6 +411,27 @@ select.inp{appearance:none;-webkit-appearance:none}
 </div>
 
 <!-- ══════════ CIERRE ══════════ -->
+<div class="screen" id="s-pedrap">
+  <div class="hd" style="padding-bottom:10px">
+    <button class="salir" onclick="APP.logout()">Salir</button>
+    <button class="salir" style="right:76px" onclick="APP.miPerfil()">👤</button>
+    <div class="mini">Venta al paso</div>
+    <h1>🛒 Pedido rápido</h1>
+    <div class="cats" id="pr-cats" style="margin-top:10px"></div>
+  </div>
+  <div class="wrap" style="padding-bottom:160px">
+    <div class="busq-wrap"><span class="ic">🔍</span><input class="inp" id="pr-busq" type="text" placeholder="Buscar producto…" oninput="APP.buscarPR(this.value)"></div>
+    <div id="pr-grid"></div>
+  </div>
+  <div id="pr-barra" style="position:fixed;left:0;right:0;bottom:60px;max-width:480px;margin:0 auto;background:linear-gradient(150deg,var(--mar),var(--mar-2));padding:12px 16px;display:none;align-items:center;justify-content:space-between;box-shadow:0 -4px 16px rgba(62,36,24,.2);z-index:40">
+    <div onclick="APP.verOrdenPR()" style="cursor:pointer">
+      <div style="font-size:10px;color:var(--crema);font-weight:700" id="pr-barra-n">0 items</div>
+      <div style="font-size:20px;font-weight:800;color:#fff" id="pr-barra-total">$0</div>
+    </div>
+    <button class="btn" style="width:auto;margin:0;padding:11px 22px;background:var(--ok);box-shadow:none" onclick="APP.cobrarPR()">Cobrar ↑</button>
+  </div>
+</div>
+
 <div class="screen" id="s-cierre">
   <div class="hd">
     <div class="mini" id="ci-mini"></div>
@@ -1490,6 +1511,9 @@ function pintarNavBase(p){
   var nav = document.getElementById('nav');
   var botones = [];
   if(p.caja)      botones.push({id:'caja',      i:'💰', tx:'Caja',      fn:'APP.navCaja()'});
+  if(p.caja)      botones.push({id:'pedrap',    i:'🛒', tx:'Pedido',    fn:'APP.abrirPedidoRapido()'});
+  if(p.caja)      botones.push({id:'mesas',     i:'🍽️', tx:'Mesas',     fn:'APP.abrirMesas()'});
+  if(p.caja)      botones.push({id:'pedidos',   i:'📋', tx:'Pedidos',   fn:'APP.abrirPedidos()'});
   if(p.almacen)   botones.push({id:'almacen',   i:'🧁', tx:'Productos',   fn:'APP.abrirAlmacen()'});
   if(p.cuentas)   botones.push({id:'cuentas',   i:'📒', tx:'Cuentas',   fn:'APP.abrirCuentas()'});
   if(p.historial) botones.push({id:'historial', i:'📚', tx:'Cierres',   fn:'APP.abrirHistorial()'});
@@ -3927,6 +3951,171 @@ function detectarProductosSueltos(){
     if(box) box.style.display = hay ? 'block' : 'none';
   });
 }
+/* ══════════ PEDIDO RÁPIDO ══════════ */
+APP._ordenPR = {};      /* {pid: cantidad} */
+APP._catSelPR = '*';
+APP._busqPR = '';
+APP.abrirPedidoRapido = function(){
+  APP.goScreen('s-pedrap');
+  renderPedidoRapido();
+};
+APP.filtrarPR = function(c){ APP._catSelPR = c; renderPedidoRapido(); };
+APP.buscarPR = function(v){ APP._busqPR = v||''; renderGridPR(); };
+function renderPedidoRapido(){
+  if(APP._pantalla !== 's-pedrap') return;
+  chipsCats('pr-cats', APP._catSelPR, 'APP.filtrarPR');
+  renderGridPR();
+  renderBarraPR();
+}
+function renderGridPR(){
+  var cont = document.getElementById('pr-grid');
+  if(!cont) return;
+  var q = (APP._busqPR||'').toLowerCase().trim();
+  var ids = prodsOrdenados().filter(function(id){
+    var p = APP.prods[id];
+    if(APP._catSelPR !== '*' && p.categoria !== APP._catSelPR) return false;
+    if(q && (p.nombre||'').toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+  if(!ids.length){ cont.innerHTML = '<div style="text-align:center;color:var(--gris);padding:30px 10px;font-size:13px">Sin productos en esta categoría</div>'; return; }
+  var h = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  ids.forEach(function(id){
+    var p = APP.prods[id];
+    var cant = APP._ordenPR[id]||0;
+    var cuenta = seCuenta(p);
+    var stock = p.almacen||0;
+    var sel = cant > 0;
+    h += '<div onclick="APP.agregarPR(\''+id+'\')" style="background:#fff;border:2px solid '+(sel?'var(--coral)':'var(--linea)')+';border-radius:14px;padding:11px 10px;text-align:center;cursor:pointer;position:relative;box-shadow:'+(sel?'0 3px 10px rgba(200,121,65,.2)':'0 1px 3px rgba(62,36,24,.04)')+'">';
+    if(sel) h += '<div style="position:absolute;top:-8px;right:-8px;background:var(--coral);color:#fff;min-width:24px;height:24px;border-radius:12px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 6px;box-shadow:0 2px 6px rgba(200,121,65,.4)">'+cant+'</div>';
+    h += '<div style="font-size:13px;font-weight:700;color:var(--tinta);line-height:1.25;min-height:32px;display:flex;align-items:center;justify-content:center">'+escapa(p.nombre)+'</div>';
+    h += '<div style="font-size:14px;font-weight:800;color:var(--coral);margin-top:3px">'+fmtCOP(p.venta||0)+'</div>';
+    if(cuenta){
+      var col = stock > 0 ? 'var(--ok)' : 'var(--rojo)';
+      h += '<div style="font-size:9.5px;color:'+col+';font-weight:700;margin-top:2px">'+(stock>0?('quedan '+fmtQty(stock)):('⚠️ '+fmtQty(stock)))+'</div>';
+    } else {
+      h += '<div style="font-size:9.5px;color:var(--gris);font-weight:700;margin-top:2px">⚡ al momento</div>';
+    }
+    h += '</div>';
+  });
+  h += '</div>';
+  cont.innerHTML = h;
+}
+APP.agregarPR = function(id){
+  APP._ordenPR[id] = (APP._ordenPR[id]||0) + 1;
+  renderGridPR();
+  renderBarraPR();
+};
+function totalOrdenPR(){
+  var t = 0, n = 0;
+  Object.keys(APP._ordenPR).forEach(function(id){
+    var p = APP.prods[id]; if(!p) return;
+    t += (p.venta||0)*APP._ordenPR[id];
+    n += APP._ordenPR[id];
+  });
+  return {total:t, n:n};
+}
+function renderBarraPR(){
+  var barra = document.getElementById('pr-barra');
+  if(!barra) return;
+  var r = totalOrdenPR();
+  if(r.n <= 0){ barra.style.display = 'none'; return; }
+  barra.style.display = 'flex';
+  document.getElementById('pr-barra-n').textContent = r.n + (r.n===1?' item':' items');
+  document.getElementById('pr-barra-total').textContent = fmtCOP(r.total);
+}
+APP.verOrdenPR = function(){
+  var r = totalOrdenPR();
+  if(r.n <= 0){ toast('La orden está vacía'); return; }
+  var h = '<div style="max-height:50vh;overflow-y:auto">';
+  Object.keys(APP._ordenPR).forEach(function(id){
+    var p = APP.prods[id]; if(!p) return;
+    var cant = APP._ordenPR[id];
+    h += '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--linea)">';
+    h += '<div style="flex:1"><div style="font-size:13px;font-weight:700">'+escapa(p.nombre)+'</div><div style="font-size:11px;color:var(--gris)">'+fmtCOP(p.venta||0)+' c/u</div></div>';
+    h += '<button class="btn sec" style="width:auto;margin:0;padding:4px 12px;font-size:16px" onclick="APP.menosPR(\''+id+'\')">−</button>';
+    h += '<b style="min-width:24px;text-align:center;font-size:15px">'+cant+'</b>';
+    h += '<button class="btn sec" style="width:auto;margin:0;padding:4px 12px;font-size:16px" onclick="APP.masPR(\''+id+'\')">+</button>';
+    h += '</div>';
+  });
+  h += '</div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0 4px"><span style="font-size:14px;font-weight:700">Total</span><b style="font-size:22px;font-weight:800;color:var(--coral)">'+fmtCOP(r.total)+'</b></div>';
+  h += '<button class="btn" style="background:var(--ok)" onclick="APP.cobrarPR()">💵 Cobrar '+fmtCOP(r.total)+'</button>';
+  h += '<button class="btn sec" style="color:var(--rojo);border-color:#F5C6C0" onclick="APP.vaciarPR()">🗑️ Vaciar orden</button>';
+  h += '<button class="btn sec" onclick="APP.cerrarModal()">Seguir agregando</button>';
+  abrirModal('🛒 Orden actual', h);
+};
+APP.masPR = function(id){ APP._ordenPR[id] = (APP._ordenPR[id]||0)+1; APP.verOrdenPR(); renderGridPR(); renderBarraPR(); };
+APP.menosPR = function(id){
+  APP._ordenPR[id] = (APP._ordenPR[id]||0)-1;
+  if(APP._ordenPR[id] <= 0) delete APP._ordenPR[id];
+  var r = totalOrdenPR();
+  if(r.n <= 0){ APP.cerrarModal(); } else { APP.verOrdenPR(); }
+  renderGridPR(); renderBarraPR();
+};
+APP.vaciarPR = function(){
+  APP._ordenPR = {};
+  APP.cerrarModal();
+  renderGridPR(); renderBarraPR();
+};
+APP.cobrarPR = function(){
+  var r = totalOrdenPR();
+  if(r.n <= 0){ toast('La orden está vacía'); return; }
+  /* verificar que haya turno abierto */
+  if(!APP.turnoActivo || !APP.turnoData || APP.turnoData.estado !== 'abierta'){
+    toast('Abre la caja primero para cobrar');
+    return;
+  }
+  var items = {};
+  Object.keys(APP._ordenPR).forEach(function(id){
+    var p = APP.prods[id];
+    items[id] = {nombre:p.nombre, cant:APP._ordenPR[id], precio:p.venta||0, ambiente:ambienteDe(p), cuenta:seCuenta(p)};
+  });
+  var h = '<div style="text-align:center;margin-bottom:14px"><div style="font-size:12px;color:var(--gris)">Total a cobrar</div><div style="font-size:32px;font-weight:800;color:var(--coral)">'+fmtCOP(r.total)+'</div></div>';
+  h += '<div class="flabel">¿Cómo pagó?</div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  var metodos = [['efectivo','💵 Efectivo'],['pagomovil','📱 Pago móvil'],['tarjeta','💳 Tarjeta'],['transferencia','🏦 Transferencia']];
+  metodos.forEach(function(m){
+    h += '<button class="btn" style="margin:0;background:var(--mar-2)" onclick="APP.confirmarCobroPR(\''+m[0]+'\')">'+m[1]+'</button>';
+  });
+  h += '</div>';
+  h += '<button class="btn sec" style="margin-top:10px" onclick="APP.cerrarModal()">Cancelar</button>';
+  abrirModal('💵 Cobrar', h);
+};
+APP.confirmarCobroPR = function(metodo){
+  var r = totalOrdenPR();
+  var ahora = Date.now();
+  var ventaId = 'v_'+ahora;
+  var items = {};
+  var updates = {};
+  Object.keys(APP._ordenPR).forEach(function(id){
+    var p = APP.prods[id];
+    var cant = APP._ordenPR[id];
+    items[id] = {nombre:p.nombre, cant:cant, precio:p.venta||0};
+    /* descontar inventario SOLO si el producto se cuenta (puede quedar negativo) */
+    if(seCuenta(p)){
+      var nuevo = (p.almacen||0) - cant;
+      updates['inventario/productos/'+id+'/almacen'] = nuevo;
+    }
+  });
+  /* registrar la venta */
+  var venta = {
+    id: ventaId, ts: ahora, fecha: fechaOperativa(),
+    origen: 'pedido_rapido', metodo: metodo,
+    total: r.total, items: items,
+    usuario: APP.user.nombre, turnoId: APP.turnoActivo||''
+  };
+  updates['ventasPOS/'+ventaId] = venta;
+  db.ref().update(updates).then(function(){
+    log('venta', 'Pedido rápido '+fmtCOP(r.total)+' ('+metodo+')');
+    APP._ordenPR = {};
+    APP.cerrarModal();
+    toast('✅ Venta cobrada · '+fmtCOP(r.total));
+    renderGridPR(); renderBarraPR();
+  }).catch(function(e){ toast('⚠️ '+String(e&&e.message||e).slice(0,50)); });
+};
+/* placeholders de las otras pantallas POS (se construyen después) */
+APP.abrirMesas = function(){ toast('🍽️ Órdenes de mesa · próximamente'); };
+APP.abrirPedidos = function(){ toast('📋 Tablero de pedidos · próximamente'); };
 APP.abrirAlmacen = function(){
   APP.goScreen('s-almacen');
   renderAlmacen();
