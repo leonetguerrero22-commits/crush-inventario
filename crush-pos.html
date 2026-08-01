@@ -601,16 +601,16 @@ select.inp{appearance:none;-webkit-appearance:none}
       <div style="font-size:11.5px;color:#8A6212;line-height:1.5;margin-bottom:10px">Se detectaron productos importados en el lugar equivocado. Toca el botón para acomodarlos automáticamente en su sitio correcto.</div>
       <button class="btn" style="margin:0;background:#D98218" onclick="APP.repararInventario()">🔧 Acomodar productos ahora</button>
     </div>
-    <div id="al-pendientes"></div>
-    <div class="acciones" style="margin-top:0">
-      <button class="acc in" onclick="APP.modalCompra()">＋ Compra</button>
-      <button class="acc out" onclick="APP.modalMerma()">📉 Merma</button>
+    <div id="cargar-crush-box" style="display:none;background:#FEF6E7;border:1px solid #E9C89A;border-radius:14px;padding:14px;margin-bottom:12px">
+      <div style="font-size:12.5px;font-weight:800;color:#8A6212;margin-bottom:6px">☕ Cargar el menú de CRUSH</div>
+      <div style="font-size:11.5px;color:#8A6212;line-height:1.5;margin-bottom:10px">Se detectaron productos de pescadería. Toca para borrarlos y cargar el menú real de CRUSH (cachitos, golfeados, cafés, postres…).</div>
+      <button class="btn" style="margin:0;background:var(--coral)" onclick="APP.cargarProductosCrush()">☕ Cargar productos de CRUSH</button>
     </div>
-    <button class="btn" style="margin:0 0 12px;background:var(--coral);box-shadow:0 4px 14px rgba(23,169,160,.32)" onclick="APP.abrirVentaPesc()">🛒 Venta del día (pescadería)</button>
-    <button class="btn" style="margin:0 0 12px;background:var(--mar);box-shadow:none" onclick="APP.modalSalidaRest()">🍽️ Salida al restaurante</button>
+    <div id="al-pendientes"></div>
+    <button class="btn" style="margin:0 0 12px;background:var(--ok);box-shadow:0 4px 14px rgba(122,158,92,.32)" onclick="APP.modalCompra()">➕ Registrar producción de hoy</button>
     <div class="acciones" style="margin-top:0">
+      <button class="acc out" onclick="APP.modalMerma()">📉 Merma / dañado</button>
       <button class="acc" style="background:var(--noche)" onclick="APP.abrirRevision()">📋 Revisión física</button>
-      <button class="acc" style="background:var(--gris)" onclick="APP.descargarPlanilla()">⬇️ Planilla</button>
     </div>
     <div class="cats" id="al-cats"></div>
     <div id="al-lista"></div>
@@ -3607,26 +3607,66 @@ APP._catSelAl = '*';
 APP._reqSel = {};
 
 /* Listado "stock DC" de Erwing: [categoría, nombre, mínimo, unidad] */
+/* Productos reales de CRUSH: [categoría, nombre, mínimo, unidad, precioVenta] */
 var SEED_INV = [
-  [0,'Tilapia entera',10,'kg'],[0,'Filet de tilapia',5,'kg'],[0,'Bagre',5,'kg'],[0,'Salmón',2,'kg'],
-  [1,'Camarón titi',5,'kg'],[1,'Camarón jumbo',3,'kg'],[1,'Camarón pelado',2,'kg'],[1,'Calamar',2,'kg'],[1,'Pulpo',2,'kg'],
-  [2,'Coronitas',3,'und'],[2,'Surimi',3,'und'],[2,'Papa precocida',4,'bolsa'],
-  [3,'Harina pan',2,'kg'],[3,'Harina de trigo',2,'kg'],[3,'Aceite',1,'gal'],[3,'Limones',3,'kg'],[3,'Ajo',0.5,'kg'],
-  [4,'Sal',1,'kg'],[4,'Salsa de ajo',1,'und'],[4,'Mayonesa',1,'gal'],
-  [5,'Refrescos surtidos',1,'caja'],[5,'Agua',1,'caja'],[5,'Malta',1,'caja'],
-  [6,'Hielo',2,'bolsas'],[6,'Guantes',1,'paq'],
-  [7,'Envases ct1',30,'und'],[7,'Bolsas',1,'paq'],[7,'Servilletas',2,'paq']
+  /* 0 Cachitos */
+  [0,'Cachito',3,'und',8000],[0,'Pastel de manzana',2,'und',6000],[0,'Pasteles',3,'und',4000],[0,'Pasteles crudos',3,'und',2700],[0,'Tequeño',5,'und',5000],[0,'Mini pan de jamón',2,'und',20000],[0,'Pan de jamón (entero)',1,'und',50000],[0,'Pan orégano',2,'und',5000],[0,'Croissant con frutas',2,'und',15000],
+  /* 1 Golfeados */
+  [1,'Golfeado',3,'und',10000],
+  /* 2 Cinnarolls */
+  [2,'Cinnarolls gde',2,'und',10000],[2,'Cinnarolls mini (combo x3)',2,'combo',10000],
+  /* 3 Galletas */
+  [3,'Galletas 2x10 mil (100g)',3,'paq',10000],[3,'Galletas 4x10 mil (50g)',3,'paq',10000],[3,'Galletas con topping chocolate',3,'und',7000],[3,'Galletas x1und (100g)',5,'und',5000],[3,'Galletas x1und (50g)',5,'und',3000],[3,'Combo galletas envase',2,'und',12000],[3,'Galletas rellenas',3,'und',10000],[3,'Palmeritas mini',5,'und',2000],
+  /* 4 Cafés (al momento) */
+  [4,'Café expreso grande',0,'und',5000],[4,'Cappuccino',0,'und',7000],[4,'Frapuccino',0,'und',15000],[4,'Mocaccino',0,'und',7000],[4,'Chocolate caliente',0,'und',6000],[4,'Infusión',0,'und',4000],[4,'Leche tibia',0,'und',4000],
+  /* 5 Bebidas (envasadas, se cuentan) */
+  [5,'Agua mineral',6,'und',3000],[5,'Coca Cola (lata)',12,'und',6000],[5,'Coca Cola (botella)',12,'und',4000],[5,'Nestea (vaso)',6,'und',5000],[5,'Jugo yukery 250ml',6,'und',5000],[5,'Malta botella',6,'und',5000],[5,'Malta botella desechable',6,'und',4000],[5,'Batidos',0,'und',8000],[5,'Merengadas',0,'und',10000],[5,'Frapuccino con crema',0,'und',15000],
+  /* 6 Postres (nevera fría) */
+  [6,'Cheesecake (porción)',3,'und',20000],[6,'Copas de torta y syrup',3,'und',10000],[6,'Galleton Nutella (porción)',3,'und',15000],[6,'Galleton Nutella completo',1,'und',100000],[6,'Pie parchita/limón (porción)',3,'und',15000],[6,'Pie parchita/limón (completo)',1,'und',100000],[6,'Quesillo (porción)',3,'und',10000],[6,'Torta Red velvet (porción)',3,'und',20000],[6,'Torta chocolate (porción)',3,'und',15000],[6,'Torta completa (1kg)',1,'und',100000],[6,'Torta zanahoria (porción)',3,'und',15000],[6,'Bombas rellenas',5,'und',4000],[6,'Brownie (porción)',3,'und',10000],[6,'Copa de profiteroles',3,'und',15000],[6,'Donas gde',3,'und',8000],[6,'Milhojas porción',3,'und',10000],[6,'Profiterol individual',5,'und',4000],[6,'Parfait de yogurt',3,'und',12000],[6,'Fresas con chocolate',3,'und',12000],[6,'Fresas con crema',3,'und',10000],[6,'Copas postre variada',3,'und',12000],
+  /* 7 Sandwich */
+  [7,'Sandwich de cangrejo',0,'und',25000],[7,'Sandwich de atún',0,'und',25000],[7,'Sandwich jamón/pavo/tocineta',0,'und',25000],[7,'Sandwich de pollo',0,'und',25000],[7,'Sandwich de roast beef',0,'und',25000],
+  /* 8 Otros */
+  [8,'Pizza slice',5,'und',6000],[8,'Envases',30,'und',1000],[8,'Caja',10,'und',5000],[8,'Delivery',0,'und',4000]
 ];
 function sembrarInventario(){
   var data = {};
   SEED_INV.forEach(function(p, i){
+    var cat = CATS_INV[p[0]];
     data['p'+String(i).padStart(3,'0')] = {
-      nombre: p[1], categoria: CATS_INV[p[0]], minimo: p[2], unidad: p[3],
-      linea: 0, almacen: 0, costo: 0, venta: 0, orden: i,
-      ambito: ambitoPorCat(CATS_INV[p[0]])
+      nombre: p[1], categoria: cat, minimo: p[2], unidad: p[3],
+      linea: 0, almacen: 0, costo: 0, venta: p[4]||0, orden: i,
+      ambiente: ambientePorCat(cat)
     };
   });
   db.ref('inventario/productos').set(data);
+}
+APP.cargarProductosCrush = function(){
+  if(!confirm('¿Cargar los productos de CRUSH?\nEsto BORRA los productos actuales y carga el menú de CRUSH (cachitos, golfeados, cafés, postres...).\nEl conteo de existencias empieza en 0.')) return;
+  var data = {};
+  SEED_INV.forEach(function(p, i){
+    var cat = CATS_INV[p[0]];
+    data['p'+String(i).padStart(3,'0')] = {
+      nombre: p[1], categoria: cat, minimo: p[2], unidad: p[3],
+      linea: 0, almacen: 0, costo: 0, venta: p[4]||0, orden: i,
+      ambiente: ambientePorCat(cat)
+    };
+  });
+  db.ref('inventario/productos').set(data).then(function(){
+    toast('✅ '+SEED_INV.length+' productos de CRUSH cargados');
+    log('sistema', 'Cargó el menú de CRUSH ('+SEED_INV.length+' productos)');
+    var box = document.getElementById('cargar-crush-box');
+    if(box) box.style.display = 'none';
+  }).catch(function(e){ toast('⚠️ '+String(e&&e.message||e).slice(0,50)); });
+};
+function detectarProductosViejos(){
+  var box = document.getElementById('cargar-crush-box');
+  if(!box) return;
+  /* si hay algún producto de pescadería (tilapia, camarón), ofrecemos recargar */
+  var hayViejo = Object.keys(APP.prods||{}).some(function(id){
+    var n = (APP.prods[id].nombre||'').toLowerCase();
+    return n.indexOf('tilapia')>=0 || n.indexOf('camar')>=0 || n.indexOf('pulpo')>=0 || n.indexOf('calamar')>=0;
+  });
+  box.style.display = hayViejo ? 'block' : 'none';
 }
 function fmtQty(n){
   n = n||0;
@@ -3891,6 +3931,7 @@ APP.abrirAlmacen = function(){
   APP.goScreen('s-almacen');
   renderAlmacen();
   detectarProductosSueltos();
+  detectarProductosViejos();
 };
 APP.filtrarAl = function(c){ APP._catSelAl = c; renderAlmacen(); };
 function renderAlmacen(){
@@ -3924,13 +3965,15 @@ function renderAlmacen(){
     });
   }
   document.getElementById('al-pendientes').innerHTML = hp;
-  /* valores de inventario (costos) */
-  var valAlm = 0, valLin = 0, sinCosto = 0;
+  /* dinero en vitrina (por precio de venta, solo lo que se cuenta) */
+  var valSeca = 0, valFria = 0, sinPrecio = 0;
   prodsOrdenados().forEach(function(id){
     var p = APP.prods[id];
-    if(ambitoDe(p) !== 'linea') valAlm += (p.almacen||0)*(p.costo||0);
-    if(ambitoDe(p) !== 'pesc') valLin += (p.linea||0)*(p.costo||0);
-    if(!(p.costo>0)) sinCosto++;
+    if(!seCuenta(p)) return;
+    var amb = ambienteDe(p);
+    var monto = (p.almacen||0)*(p.venta||0);
+    if(amb === 'fria') valFria += monto; else valSeca += monto;
+    if(!(p.venta>0)) sinPrecio++;
   });
   chipsCats('al-cats', APP._catSelAl, 'APP.filtrarAl');
   var dup = mapaDuplicados();
@@ -3942,11 +3985,12 @@ function renderAlmacen(){
     if(!porCat[p.categoria]) porCat[p.categoria] = [];
     porCat[p.categoria].push(id);
   });
-  var h = '<div class="card" style="background:linear-gradient(155deg,var(--mar),var(--mar-2));border:none;color:#fff"><div class="lbl" style="color:rgba(255,255,255,.6)">Valor del inventario · a costo</div>';
-  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:2px 0"><span style="font-size:13px;opacity:.85">🐟 En cava</span><b style="font-size:15px;letter-spacing:-.02em">'+fmtCOP(valAlm)+'</b></div>';
-  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:2px 0 10px"><span style="font-size:13px;opacity:.85">🍳 En línea</span><b style="font-size:15px;letter-spacing:-.02em">'+fmtCOP(valLin)+'</b></div>';
-  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:12px;border-top:1px solid rgba(255,255,255,.16)"><span style="font-size:13px;font-weight:700">Total</span><b style="font-size:24px;font-weight:800;letter-spacing:-.03em">'+fmtCOP(valAlm+valLin)+'</b></div>';
-  if(sinCosto){ h += '<div style="font-size:10.5px;color:rgba(255,255,255,.6);margin-top:8px">'+sinCosto+' productos sin costo asignado — toca cada uno para ponérselo.</div>'; }
+  var h = '<div class="card" style="background:linear-gradient(155deg,var(--coral),var(--coral-osc));border:none;color:#fff"><div class="lbl" style="color:rgba(255,255,255,.75)">💰 Dinero en vitrina · a precio de venta</div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:2px 0"><span style="font-size:13px;opacity:.9">🗄️ Vitrina seca</span><b style="font-size:15px;letter-spacing:-.02em">'+fmtCOP(valSeca)+'</b></div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:2px 0 10px"><span style="font-size:13px;opacity:.9">❄️ Nevera fría</span><b style="font-size:15px;letter-spacing:-.02em">'+fmtCOP(valFria)+'</b></div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:12px;border-top:1px solid rgba(255,255,255,.22)"><span style="font-size:13px;font-weight:700">Total en vitrina</span><b style="font-size:24px;font-weight:800;letter-spacing:-.03em">'+fmtCOP(valSeca+valFria)+'</b></div>';
+  h += '<div style="font-size:10.5px;color:rgba(255,255,255,.75);margin-top:6px">Lo que deberías recaudar si se vende todo (sin merma)</div>';
+  if(sinPrecio){ h += '<div style="font-size:10.5px;color:rgba(255,255,255,.7);margin-top:6px">'+sinPrecio+' productos sin precio — toca cada uno para ponérselo.</div>'; }
   h += '</div>';
   /* buscador */
   h += '<div class="busq-wrap"><span class="ic">🔍</span><input class="inp" id="al-busq" type="text" placeholder="Buscar producto…" value="'+escapaAttr(APP._busqInv||'')+'" oninput="APP.buscarInv(this.value)"></div>';
