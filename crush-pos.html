@@ -456,6 +456,30 @@ select.inp{appearance:none;-webkit-appearance:none}
   </div>
 </div>
 
+<div class="screen" id="s-resumen">
+  <div class="hd">
+    <button class="salir" onclick="APP.confirmarSalirResumen()">← Volver</button>
+    <div class="mini" id="resumen-n">0 productos</div>
+    <h1>🛒 Revisa la orden</h1>
+    <div class="sub">Desliza un producto: ➡ aumentar · ⬅ disminuir</div>
+  </div>
+  <div class="wrap" style="padding-bottom:200px">
+    <div id="resumen-lista"></div>
+    <input class="inp" id="resumen-nota" type="text" placeholder="📝 Añadir una nota (opcional)…" style="margin-top:6px">
+    <button class="btn sec" style="color:var(--rojo);border-color:#F5C6C0;margin-top:6px" onclick="APP.vaciarPR()">🗑️ Vaciar orden</button>
+  </div>
+  <div style="position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;border-top:1px solid var(--linea);padding:12px 14px;z-index:40">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+      <span style="font-size:14px;font-weight:700;color:var(--tinta)">Total</span>
+      <b style="font-size:24px;font-weight:800;color:var(--coral)" id="resumen-total">$0</b>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="margin:0;flex:1;background:var(--ok);padding:14px 8px;font-size:13px;line-height:1.2" onclick="APP.pagoRapidoEfectivo()">⚡ Pago rápido<br><span style="font-size:10px;opacity:.9;font-weight:600">en efectivo</span></button>
+      <button class="btn" style="margin:0;flex:1;background:var(--mar);padding:14px 8px;font-size:13px;line-height:1.2" onclick="APP.cobrarPR()">💳 Pago<br><span style="font-size:10px;opacity:.9;font-weight:600">elegir método</span></button>
+    </div>
+  </div>
+</div>
+
 <div class="screen" id="s-cierre">
   <div class="hd">
     <div class="mini" id="ci-mini"></div>
@@ -4075,36 +4099,85 @@ function renderBarraPR(){
 APP.verOrdenPR = function(){
   var r = totalOrdenPR();
   if(r.n <= 0){ toast('La orden está vacía'); return; }
-  var h = '<div style="max-height:50vh;overflow-y:auto">';
+  APP.goScreen('s-resumen');
+  renderResumenPR();
+};
+function renderResumenPR(){
+  var r = totalOrdenPR();
+  var el = document.getElementById('resumen-lista');
+  if(!el) return;
+  var h = '';
   Object.keys(APP._ordenPR).forEach(function(id){
     var p = APP.prods[id]; if(!p) return;
     var cant = APP._ordenPR[id];
-    h += '<div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--linea)">';
-    h += '<div style="flex:1"><div style="font-size:13px;font-weight:700">'+escapa(p.nombre)+'</div><div style="font-size:11px;color:var(--gris)">'+fmtCOP(p.venta||0)+' c/u</div></div>';
-    h += '<button class="btn sec" style="width:auto;margin:0;padding:4px 12px;font-size:16px" onclick="APP.menosPR(\''+id+'\')">−</button>';
-    h += '<b style="min-width:24px;text-align:center;font-size:15px">'+cant+'</b>';
-    h += '<button class="btn sec" style="width:auto;margin:0;padding:4px 12px;font-size:16px" onclick="APP.masPR(\''+id+'\')">+</button>';
-    h += '</div>';
+    var mom = seCuenta(p) ? '' : ' · ⚡';
+    h += '<div class="swipe-wrap" data-id="'+id+'" style="position:relative;border-radius:14px;overflow:hidden;margin-bottom:8px;background:#7A9E5C">';
+    /* fondos de gesto */
+    h += '<div class="swipe-bg-izq" style="position:absolute;right:0;top:0;bottom:0;width:50%;background:var(--rojo);display:flex;align-items:center;justify-content:flex-end;padding-right:18px;color:#fff;font-size:13px;font-weight:800;opacity:0">DISMINUIR ➖</div>';
+    h += '<div class="swipe-bg-der" style="position:absolute;left:0;top:0;bottom:0;width:50%;background:var(--ok);display:flex;align-items:center;padding-left:18px;color:#fff;font-size:13px;font-weight:800;opacity:0">➕ AUMENTAR</div>';
+    h += '<div class="swipe-card" style="position:relative;background:#fff;border-radius:14px;padding:13px 15px;display:flex;align-items:center;gap:10px;touch-action:pan-y">';
+    h += '<div style="flex:1"><div style="font-size:14px;font-weight:700;color:var(--tinta)">'+escapa(p.nombre)+'</div><div style="font-size:11px;color:var(--gris)">'+fmtCOP(p.venta||0)+' c/u'+mom+'</div></div>';
+    h += '<div style="text-align:right"><div style="font-size:16px;font-weight:800;color:var(--tinta)">×'+cant+'</div><div style="font-size:11px;color:var(--ok);font-weight:700">'+fmtCOP((p.venta||0)*cant)+'</div></div>';
+    h += '</div></div>';
   });
-  h += '</div>';
-  h += '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0 4px"><span style="font-size:14px;font-weight:700">Total</span><b style="font-size:22px;font-weight:800;color:var(--coral)">'+fmtCOP(r.total)+'</b></div>';
-  h += '<button class="btn" style="background:var(--ok)" onclick="APP.cobrarPR()">💵 Cobrar '+fmtCOP(r.total)+'</button>';
-  h += '<button class="btn sec" style="color:var(--rojo);border-color:#F5C6C0" onclick="APP.vaciarPR()">🗑️ Vaciar orden</button>';
-  h += '<button class="btn sec" onclick="APP.cerrarModal()">Seguir agregando</button>';
-  abrirModal('🛒 Orden actual', h);
-};
-APP.masPR = function(id){ APP._ordenPR[id] = (APP._ordenPR[id]||0)+1; APP.verOrdenPR(); renderGridPR(); renderBarraPR(); };
-APP.menosPR = function(id){
-  APP._ordenPR[id] = (APP._ordenPR[id]||0)-1;
-  if(APP._ordenPR[id] <= 0) delete APP._ordenPR[id];
+  el.innerHTML = h;
+  document.getElementById('resumen-total').textContent = fmtCOP(r.total);
+  document.getElementById('resumen-n').textContent = r.n + (r.n===1?' producto':' productos');
+  activarSwipes();
+}
+/* gestos deslizables (switch aumentar/disminuir) */
+function activarSwipes(){
+  var wraps = document.querySelectorAll('#resumen-lista .swipe-wrap');
+  wraps.forEach(function(w){
+    var card = w.querySelector('.swipe-card');
+    var bgIzq = w.querySelector('.swipe-bg-izq');
+    var bgDer = w.querySelector('.swipe-bg-der');
+    var id = w.getAttribute('data-id');
+    var x0 = null, dx = 0;
+    card.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; dx = 0; card.style.transition = 'none'; }, {passive:true});
+    card.addEventListener('touchmove', function(e){
+      if(x0 === null) return;
+      dx = e.touches[0].clientX - x0;
+      dx = Math.max(-140, Math.min(140, dx));
+      card.style.transform = 'translateX('+dx+'px)';
+      if(dx > 0){ bgDer.style.opacity = Math.min(1, dx/80); bgIzq.style.opacity = 0; }
+      else { bgIzq.style.opacity = Math.min(1, -dx/80); bgDer.style.opacity = 0; }
+    }, {passive:true});
+    card.addEventListener('touchend', function(){
+      card.style.transition = 'transform .2s';
+      card.style.transform = 'translateX(0)';
+      bgIzq.style.opacity = 0; bgDer.style.opacity = 0;
+      if(dx > 70){ APP._ordenPR[id] = (APP._ordenPR[id]||0)+1; setTimeout(refrescarResumen, 120); }
+      else if(dx < -70){ APP._ordenPR[id] = (APP._ordenPR[id]||0)-1; if(APP._ordenPR[id]<=0) delete APP._ordenPR[id]; setTimeout(refrescarResumen, 120); }
+      x0 = null; dx = 0;
+    });
+  });
+}
+function refrescarResumen(){
   var r = totalOrdenPR();
-  if(r.n <= 0){ APP.cerrarModal(); } else { APP.verOrdenPR(); }
-  renderGridPR(); renderBarraPR();
-};
+  if(r.n <= 0){ APP.abrirPedidoRapido(); return; }
+  renderResumenPR();
+  renderBarraPR();
+}
+APP.volverAgregar = function(){ APP.abrirPedidoRapido(); };
 APP.vaciarPR = function(){
-  APP._ordenPR = {};
-  APP.cerrarModal();
-  renderGridPR(); renderBarraPR();
+  if(!confirm('¿Vaciar la orden? Perderás todos los productos agregados.')) return;
+  APP._ordenPR = {}; APP._ultimoPR = null;
+  APP.abrirPedidoRapido();
+};
+APP.confirmarSalirResumen = function(){
+  /* volver a agregar productos NO pierde la orden */
+  APP.abrirPedidoRapido();
+};
+/* PAGO RÁPIDO: todo en efectivo, sin pedir nada (para cuando hay cola) */
+APP.pagoRapidoEfectivo = function(){
+  var r = totalOrdenPR();
+  if(r.n <= 0){ toast('La orden está vacía'); return; }
+  if(!APP.turnoActivo || !APP.turnoData || APP.turnoData.estado !== 'abierta'){
+    toast('Abre la caja primero para cobrar'); return;
+  }
+  APP._pagoMontos = {efectivo: r.total};
+  procesarVentaPR();
 };
 APP.cobrarPR = function(){
   var r = totalOrdenPR();
@@ -4112,7 +4185,7 @@ APP.cobrarPR = function(){
   if(!APP.turnoActivo || !APP.turnoData || APP.turnoData.estado !== 'abierta'){
     toast('Abre la caja primero para cobrar'); return;
   }
-  APP._pagoMontos = {};  /* {metodoId: monto pagado} */
+  APP._pagoMontos = {}; APP._pagoSel = {}; APP._pagoRefs = {}; APP._pagoFotos = {};
   APP.goScreen('s-pago');
   renderPago();
 };
@@ -4122,21 +4195,62 @@ function renderPago(){
   document.getElementById('pago-total').textContent = fmtCOP(r.total);
   var cont = document.getElementById('pago-metodos');
   if(!cont) return;
+  if(!APP._pagoSel) APP._pagoSel = {};
+  if(!APP._pagoRefs) APP._pagoRefs = {};
+  if(!APP._pagoFotos) APP._pagoFotos = {};
   var h = '';
   METODOS_ING.forEach(function(m){
+    var sel = !!APP._pagoSel[m.id];
     var val = APP._pagoMontos[m.id]||'';
-    h += '<div style="background:#fff;border:1px solid var(--linea);border-radius:12px;padding:11px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px">';
-    h += '<div style="flex:1;font-size:13px;font-weight:700;color:var(--tinta)">'+m.tx+'</div>';
-    h += '<input class="inp" style="width:120px;margin:0;text-align:right" type="text" inputmode="numeric" placeholder="0" value="'+(val?Number(val).toLocaleString('es-CO'):'')+'" oninput="APP.setPago(\''+m.id+'\',this.value)">';
+    var esBs = (m.id === 'bs' || m.id === 'bancol' || m.id === 'zelle');
+    h += '<div style="background:#fff;border:'+(sel?'2px solid var(--coral)':'1px solid var(--linea)')+';border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:'+(sel?'0 3px 10px rgba(200,121,65,.18)':'none')+'">';
+    h += '<div onclick="APP.toggleMetodo(\''+m.id+'\')" style="display:flex;align-items:center;gap:10px;cursor:pointer">';
+    h += '<div style="width:24px;height:24px;border-radius:50%;'+(sel?'background:var(--coral);color:#fff':'border:2px solid var(--linea)')+';display:flex;align-items:center;justify-content:center;font-size:13px">'+(sel?'✓':'')+'</div>';
+    h += '<div style="flex:1;font-size:13px;font-weight:700;color:'+(sel?'var(--tinta)':'var(--gris)')+'">'+m.tx+'</div>';
     h += '</div>';
-    /* si es efectivo, botón "exacto" para llenar rápido */
-    if(m.id === 'efectivo'){
-      h += '<div onclick="APP.pagoExacto()" style="text-align:center;font-size:11px;color:var(--coral);font-weight:800;margin:-4px 0 10px;cursor:pointer">💵 Pagó justo en efectivo</div>';
+    if(sel){
+      h += '<div style="margin-top:10px"><input class="inp" style="margin:0;text-align:right;font-size:15px;font-weight:700" type="text" inputmode="numeric" placeholder="Monto" value="'+(val?Number(val).toLocaleString('es-CO'):'')+'" oninput="APP.setPago(\''+m.id+'\',this.value)"></div>';
+      if(esBs){
+        h += '<div style="display:flex;gap:8px;margin-top:8px">';
+        h += '<input class="inp" style="flex:1;margin:0" type="text" placeholder="Referencia" value="'+(APP._pagoRefs[m.id]||'')+'" oninput="APP.setRef(\''+m.id+'\',this.value)">';
+        var tieneFoto = !!APP._pagoFotos[m.id];
+        h += '<label style="background:'+(tieneFoto?'var(--ok)':'#F3EBE2')+';color:'+(tieneFoto?'#fff':'var(--mar-2)')+';border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center">'+(tieneFoto?'✓ Foto':'📷 Foto')+'<input type="file" accept="image/*" capture="environment" style="display:none" onchange="APP.fotoComprobante(\''+m.id+'\',this)"></label>';
+        h += '</div>';
+      }
+    }
+    h += '</div>';
+    if(m.id === 'efectivo' && sel){
+      h += '<div onclick="APP.pagoExacto()" style="text-align:center;font-size:11px;color:var(--coral);font-weight:800;margin:-2px 0 10px;cursor:pointer">💵 Pagó justo · llenar con el total</div>';
     }
   });
   cont.innerHTML = h;
   actualizarPagoTotales();
 }
+APP.toggleMetodo = function(mid){
+  if(APP._pagoSel[mid]){ delete APP._pagoSel[mid]; delete APP._pagoMontos[mid]; delete APP._pagoRefs[mid]; delete APP._pagoFotos[mid]; }
+  else { APP._pagoSel[mid] = true; }
+  renderPago();
+};
+APP.setRef = function(mid, v){ APP._pagoRefs[mid] = v; };
+APP.fotoComprobante = function(mid, input){
+  var f = input.files && input.files[0]; if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    /* comprimir a un tamaño razonable antes de guardar */
+    var img = new Image();
+    img.onload = function(){
+      var max = 900, w = img.width, hh = img.height;
+      if(w > max){ hh = hh*max/w; w = max; }
+      var c = document.createElement('canvas'); c.width = w; c.height = hh;
+      c.getContext('2d').drawImage(img, 0, 0, w, hh);
+      APP._pagoFotos[mid] = c.toDataURL('image/jpeg', 0.6);
+      toast('📷 Comprobante guardado');
+      renderPago();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(f);
+};
 APP.setPago = function(mid, v){
   var n = parseFloat(String(v).replace(/[^\d]/g,''))||0;
   if(n>0) APP._pagoMontos[mid] = n; else delete APP._pagoMontos[mid];
@@ -4147,6 +4261,7 @@ APP.pagoExacto = function(){
   var otros = 0;
   Object.keys(APP._pagoMontos).forEach(function(k){ if(k!=='efectivo') otros += APP._pagoMontos[k]; });
   APP._pagoMontos['efectivo'] = Math.max(0, r.total - otros);
+  APP._pagoSel['efectivo'] = true;
   renderPago();
 };
 function actualizarPagoTotales(){
@@ -4157,15 +4272,26 @@ function actualizarPagoTotales(){
   var elP = document.getElementById('pago-pagado');
   var elR = document.getElementById('pago-restante');
   if(elP) elP.textContent = fmtCOP(pagado);
-  if(elR) elR.textContent = (rest>0?fmtCOP(rest):(rest<0?'Cambio '+fmtCOP(-rest):'$0'));
+  if(elR){
+    if(rest > 0){ elR.textContent = fmtCOP(rest); elR.previousElementSibling.textContent = 'Restante'; }
+    else if(rest < 0){ elR.textContent = fmtCOP(-rest); elR.previousElementSibling.textContent = 'Vuelto'; }
+    else { elR.textContent = '$0'; elR.previousElementSibling.textContent = 'Restante'; }
+  }
 }
 APP.completarPago = function(){
   var r = totalOrdenPR();
   var pagado = 0;
   Object.keys(APP._pagoMontos).forEach(function(k){ pagado += APP._pagoMontos[k]; });
-  /* si no puso montos, asumimos todo efectivo */
-  if(pagado === 0){ APP._pagoMontos = {efectivo: r.total}; pagado = r.total; }
+  if(pagado === 0){ toast('Selecciona un método y pon el monto'); return; }
   if(pagado < r.total){ toast('Falta '+fmtCOP(r.total-pagado)+' por cubrir'); return; }
+  procesarVentaPR();
+};
+/* guarda la venta: inventario baja + ingreso(s) a caja por método + comprobantes */
+function procesarVentaPR(){
+  var r = totalOrdenPR();
+  var pagado = 0;
+  Object.keys(APP._pagoMontos).forEach(function(k){ pagado += APP._pagoMontos[k]; });
+  var vuelto = Math.max(0, pagado - r.total);
   var ahora = Date.now();
   var ventaId = 'v_'+ahora;
   var updates = {};
@@ -4177,29 +4303,40 @@ APP.completarPago = function(){
     resumen.push(cant+'× '+p.nombre);
     if(seCuenta(p)){ updates['inventario/productos/'+id+'/almacen'] = (p.almacen||0) - cant; }
   });
+  var nota = (document.getElementById('resumen-nota')||{}).value || '';
   updates['ventasPOS/'+ventaId] = {
     id:ventaId, ts:ahora, fecha:fechaOperativa(), origen:'pedido_rapido',
-    total:r.total, pagos:APP._pagoMontos, items:items, usuario:APP.user.nombre, turnoId:APP.turnoActivo
+    total:r.total, pagado:pagado, vuelto:vuelto, pagos:APP._pagoMontos,
+    refs:(APP._pagoRefs||{}), comprobantes:(APP._pagoFotos||{}),
+    nota:nota, items:items, usuario:APP.user.nombre, turnoId:APP.turnoActivo
   };
-  /* un movimiento en caja por CADA método usado (así el cierre cuadra por método) */
+  /* un ingreso en caja por método — registra el NETO (el vuelto no se registra) */
   Object.keys(APP._pagoMontos).forEach(function(mid){
     var monto = APP._pagoMontos[mid]; if(monto<=0) return;
     var info = metodoInfo(mid);
+    /* si el efectivo cubre de más, registramos solo la parte neta que corresponde */
+    var montoNeto = monto;
+    if(mid === 'efectivo' && vuelto > 0){ montoNeto = monto - vuelto; }
+    if(montoNeto <= 0) return;
     var mov = {
-      tipo:'ingreso', monto:monto, motivo:'Venta · '+resumen.slice(0,3).join(', ')+(resumen.length>3?'…':''),
+      tipo:'ingreso', monto:montoNeto, motivo:'Venta · '+resumen.slice(0,3).join(', ')+(resumen.length>3?'…':''),
       metodo:mid, ts:ahora, fecha:fechaOperativa(), usuario:APP.user.nombre, origen:'pedido_rapido', ventaId:ventaId
     };
     if(info.moneda !== 'COP') mov.moneda = info.moneda;
+    if(APP._pagoRefs && APP._pagoRefs[mid]) mov.ref = APP._pagoRefs[mid];
+    if(APP._pagoFotos && APP._pagoFotos[mid]) mov.comprobante = APP._pagoFotos[mid];
     var k = db.ref('caja/turnos/'+APP.turnoActivo+'/movimientos').push().key;
     updates['caja/turnos/'+APP.turnoActivo+'/movimientos/'+k] = mov;
   });
   db.ref().update(updates).then(function(){
     log('venta', 'Pedido rápido '+fmtCOP(r.total)+' → caja');
-    APP._ordenPR = {}; APP._pagoMontos = {}; APP._ultimoPR = null;
-    toast('✅ Cobrado '+fmtCOP(r.total));
+    var msg = '✅ Cobrado '+fmtCOP(r.total);
+    if(vuelto > 0) msg += ' · Vuelto '+fmtCOP(vuelto);
+    APP._ordenPR = {}; APP._pagoMontos = {}; APP._pagoRefs = {}; APP._pagoFotos = {}; APP._ultimoPR = null;
+    toast(msg);
     APP.abrirPedidoRapido();
   }).catch(function(e){ toast('⚠️ '+String(e&&e.message||e).slice(0,50)); });
-};
+}
 /* placeholders de las otras pantallas POS (se construyen después) */
 APP.abrirMesas = function(){ toast('🍽️ Órdenes de mesa · próximamente'); };
 APP.abrirPedidos = function(){ toast('📋 Tablero de pedidos · próximamente'); };
