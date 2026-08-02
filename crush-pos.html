@@ -438,7 +438,7 @@ select.inp{appearance:none;-webkit-appearance:none}
     <div class="mini">Transacción de pago</div>
     <h1>💵 Cobrar</h1>
   </div>
-  <div class="wrap" style="padding-bottom:120px">
+  <div class="wrap" style="padding-bottom:40px">
     <div class="card" style="background:linear-gradient(155deg,var(--mar),var(--mar-2));border:none;color:#fff;text-align:center">
       <div style="font-size:11px;color:rgba(255,255,255,.7);font-weight:700">EL MONTO A PAGAR</div>
       <div style="font-size:34px;font-weight:800;letter-spacing:-.03em" id="pago-total">$0</div>
@@ -449,10 +449,29 @@ select.inp{appearance:none;-webkit-appearance:none}
     </div>
     <div class="lbl" style="margin-top:6px">¿Cómo pagó? · puedes combinar métodos</div>
     <div id="pago-metodos"></div>
+    <button class="btn" style="margin:14px 0 8px;background:var(--ok);font-size:16px;padding:16px" onclick="APP.completarPago()">✅ Pago completado</button>
+    <button class="btn sec" style="margin:0 0 8px;color:var(--noche)" onclick="APP.pagoParcialPersonas()">👥 Pago parcial (dividir cuenta)</button>
+    <button class="btn sec" style="margin:0;color:var(--rojo);border-color:#F5C6C0" onclick="APP.cerrarPago()">Cancelar</button>
   </div>
-  <div style="position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;border-top:1px solid var(--linea);padding:12px 14px;display:flex;gap:8px;z-index:40">
-    <button class="btn sec" style="margin:0;flex:1;color:var(--rojo);border-color:#F5C6C0" onclick="APP.cerrarPago()">Cancelar</button>
-    <button class="btn" style="margin:0;flex:2;background:var(--ok)" onclick="APP.completarPago()">✅ Pago completado</button>
+</div>
+
+<div class="screen" id="s-parcial">
+  <div class="hd">
+    <button class="salir" onclick="APP.cerrarParcial()">← Volver</button>
+    <div class="mini">Dividir cuenta · <span id="parcial-persona">Persona 1</span></div>
+    <h1>👥 Pago parcial</h1>
+    <div class="sub">Marca lo que consumió esta persona</div>
+  </div>
+  <div class="wrap" style="padding-bottom:40px">
+    <div class="card" style="background:linear-gradient(155deg,var(--noche),var(--mar-2));border:none;color:#fff">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <div><div style="font-size:10px;color:rgba(255,255,255,.7)">Seleccionado</div><div style="font-size:24px;font-weight:800" id="parcial-sel">$0</div></div>
+        <div style="text-align:right"><div style="font-size:10px;color:rgba(255,255,255,.7)">Falta por pagar</div><div style="font-size:16px;font-weight:700" id="parcial-falta">$0</div></div>
+      </div>
+    </div>
+    <div id="parcial-lista"></div>
+    <button class="btn" style="margin:14px 0 8px;background:var(--ok)" id="parcial-btn-cobrar" onclick="APP.cobrarParcial()">💳 Cobrar esta parte</button>
+    <button class="btn sec" style="margin:0;color:var(--rojo);border-color:#F5C6C0" onclick="APP.cerrarParcial()">Cancelar división</button>
   </div>
 </div>
 
@@ -4189,10 +4208,17 @@ APP.cobrarPR = function(){
   APP.goScreen('s-pago');
   renderPago();
 };
-APP.cerrarPago = function(){ APP.abrirPedidoRapido(); };
+APP.cerrarPago = function(){
+  if(APP._modoParcial){ APP._modoParcial = false; APP.goScreen('s-parcial'); renderParcial(); return; }
+  APP.abrirPedidoRapido();
+};
+function montoAPagar(){
+  if(APP._modoParcial && APP._parcialMontoActual) return APP._parcialMontoActual;
+  return totalOrdenPR().total;
+}
 function renderPago(){
-  var r = totalOrdenPR();
-  document.getElementById('pago-total').textContent = fmtCOP(r.total);
+  var total = montoAPagar();
+  document.getElementById('pago-total').textContent = fmtCOP(total);
   var cont = document.getElementById('pago-metodos');
   if(!cont) return;
   if(!APP._pagoSel) APP._pagoSel = {};
@@ -4201,7 +4227,7 @@ function renderPago(){
   var h = '';
   METODOS_ING.forEach(function(m){
     var sel = !!APP._pagoSel[m.id];
-    var val = APP._pagoMontos[m.id]||'';
+    var val = (APP._pagoOrig && APP._pagoOrig[m.id]) || APP._pagoMontos[m.id] || '';
     var esBs = (m.id === 'bs' || m.id === 'bancol' || m.id === 'zelle');
     h += '<div style="background:#fff;border:'+(sel?'2px solid var(--coral)':'1px solid var(--linea)')+';border-radius:14px;padding:12px 14px;margin-bottom:8px;box-shadow:'+(sel?'0 3px 10px rgba(200,121,65,.18)':'none')+'">';
     h += '<div onclick="APP.toggleMetodo(\''+m.id+'\')" style="display:flex;align-items:center;gap:10px;cursor:pointer">';
@@ -4219,7 +4245,7 @@ function renderPago(){
       if(esMonedaExt){
         var tasa = info.moneda === 'USD' ? (APP.tasas.usd||4200) : (APP.tasas.ves||0);
         var montoOrig = APP._pagoOrig && APP._pagoOrig[m.id] || 0;
-        h += '<div style="font-size:11px;color:var(--coral);font-weight:700;margin-top:4px;text-align:right">'+(montoOrig>0 ? '≈ '+fmtCOP(montoOrig*tasa)+' (tasa '+tasa+')' : 'tasa del turno: '+tasa)+'</div>';
+        h += '<div id="conv-'+m.id+'" style="font-size:11px;color:var(--coral);font-weight:700;margin-top:4px;text-align:right">'+(montoOrig>0 ? '≈ '+fmtCOP(montoOrig*tasa)+' (tasa '+tasa+')' : 'tasa del turno: '+tasa)+'</div>';
       }
       if(esBs){
         h += '<div style="display:flex;gap:8px;margin-top:8px">';
@@ -4276,15 +4302,20 @@ APP.setPago = function(mid, v){
   } else {
     delete APP._pagoOrig[mid]; delete APP._pagoMontos[mid];
   }
-  /* re-render solo si es moneda extranjera (para actualizar la conversión mostrada) */
-  if(info.moneda !== 'COP'){ renderPago(); }
-  else { actualizarPagoTotales(); }
+  /* actualizar SOLO la conversión mostrada (sin redibujar el input, para no perder el foco) */
+  if(info.moneda !== 'COP'){
+    var conv = document.getElementById('conv-'+mid);
+    if(conv){
+      conv.textContent = n>0 ? ('≈ '+fmtCOP(n*tasa)+' (tasa '+tasa+')') : ('tasa del turno: '+tasa);
+    }
+  }
+  actualizarPagoTotales();
 };
 APP.pagoExacto = function(){
-  var r = totalOrdenPR();
+  var total = montoAPagar();
   var otros = 0;
   Object.keys(APP._pagoMontos).forEach(function(k){ if(k!=='efectivo') otros += APP._pagoMontos[k]; });
-  var falta = Math.max(0, r.total - otros);
+  var falta = Math.max(0, total - otros);
   APP._pagoMontos['efectivo'] = falta;
   if(!APP._pagoOrig) APP._pagoOrig = {};
   APP._pagoOrig['efectivo'] = falta;
@@ -4292,10 +4323,10 @@ APP.pagoExacto = function(){
   renderPago();
 };
 function actualizarPagoTotales(){
-  var r = totalOrdenPR();
+  var total = montoAPagar();
   var pagado = 0;
   Object.keys(APP._pagoMontos).forEach(function(k){ pagado += APP._pagoMontos[k]; });
-  var rest = r.total - pagado;
+  var rest = total - pagado;
   var elP = document.getElementById('pago-pagado');
   var elR = document.getElementById('pago-restante');
   if(elP) elP.textContent = fmtCOP(pagado);
@@ -4306,12 +4337,169 @@ function actualizarPagoTotales(){
   }
 }
 APP.completarPago = function(){
-  var r = totalOrdenPR();
+  var total = montoAPagar();
   var pagado = 0;
   Object.keys(APP._pagoMontos).forEach(function(k){ pagado += APP._pagoMontos[k]; });
-  if(pagado === 0){ toast('Selecciona un método y pon el monto'); return; }
-  if(pagado < r.total){ toast('Falta '+fmtCOP(r.total-pagado)+' por cubrir'); return; }
-  procesarVentaPR();
+  if(pagado === 0){ toast('Selecciona un método y escribe el monto'); return; }
+  if(pagado < total - 0.5){ toast('Falta '+fmtCOP(total-pagado)+' por cubrir'); return; }
+  if(APP._modoParcial){ procesarParteParcial(); }
+  else { procesarVentaPR(); }
+};
+/* procesa el pago de UNA persona en el pago parcial */
+function procesarParteParcial(){
+  var monto = APP._parcialMontoActual;
+  var pagado = 0;
+  Object.keys(APP._pagoMontos).forEach(function(k){ pagado += APP._pagoMontos[k]; });
+  var vuelto = Math.max(0, pagado - monto);
+  var ahora = Date.now();
+  var ventaId = 'v_'+ahora;
+  var updates = {};
+  var items = {};
+  var resumen = [];
+  /* los productos que esta persona pagó */
+  Object.keys(APP._parcialSel).forEach(function(id){
+    var p = APP.prods[id]; var cant = APP._parcialSel[id];
+    items[id] = {nombre:p.nombre, cant:cant, precio:p.venta||0};
+    resumen.push(cant+'× '+p.nombre);
+    /* marcar como pagado */
+    if(!APP._parcialPagado) APP._parcialPagado = {};
+    APP._parcialPagado[id] = (APP._parcialPagado[id]||0) + cant;
+    /* bajar inventario de esta parte */
+    if(seCuenta(p)){ updates['inventario/productos/'+id+'/almacen'] = (p.almacen||0) - cant; }
+  });
+  updates['ventasPOS/'+ventaId] = {
+    id:ventaId, ts:ahora, fecha:fechaOperativa(), origen:'pedido_rapido_parcial',
+    persona:APP._parcialPersona, total:monto, pagado:pagado, vuelto:vuelto,
+    pagos:APP._pagoMontos, refs:(APP._pagoRefs||{}), comprobantes:(APP._pagoFotos||{}),
+    items:items, usuario:APP.user.nombre, turnoId:APP.turnoActivo
+  };
+  Object.keys(APP._pagoMontos).forEach(function(mid){
+    var m = APP._pagoMontos[mid]; if(m<=0) return;
+    var info = metodoInfo(mid);
+    var neto = m; if(mid==='efectivo' && vuelto>0) neto = m - vuelto;
+    if(neto<=0) return;
+    var mov = {tipo:'ingreso', monto:neto, motivo:'Venta (parcial P'+APP._parcialPersona+') · '+resumen.slice(0,2).join(', '),
+      metodo:mid, ts:ahora, fecha:fechaOperativa(), usuario:APP.user.nombre, origen:'pedido_rapido_parcial', ventaId:ventaId};
+    if(info.moneda !== 'COP') mov.moneda = info.moneda;
+    if(APP._pagoRefs && APP._pagoRefs[mid]) mov.ref = APP._pagoRefs[mid];
+    if(APP._pagoFotos && APP._pagoFotos[mid]) mov.comprobante = APP._pagoFotos[mid];
+    var k = db.ref('caja/turnos/'+APP.turnoActivo+'/movimientos').push().key;
+    updates['caja/turnos/'+APP.turnoActivo+'/movimientos/'+k] = mov;
+  });
+  db.ref().update(updates).then(function(){
+    log('venta', 'Pago parcial P'+APP._parcialPersona+' '+fmtCOP(monto));
+    APP._pagoMontos = {}; APP._pagoSel = {}; APP._pagoRefs = {}; APP._pagoFotos = {}; APP._pagoOrig = {};
+    APP._parcialSel = {};
+    /* ¿queda algo pendiente? */
+    var falta = faltaPorPagarTotal();
+    if(falta <= 0.5){
+      /* toda la orden quedó pagada */
+      APP._ordenPR = {}; APP._parcialPagado = {}; APP._parcialPersona = 0; APP._modoParcial = false; APP._ultimoPR = null;
+      mostrarOrdenCompletada(0, vuelto);
+    } else {
+      /* siguiente persona */
+      APP._modoParcial = false;
+      var msg = '✅ Parte cobrada';
+      if(vuelto>0) msg += ' · Vuelto '+fmtCOP(vuelto);
+      toast(msg);
+      APP.pagoParcialPersonas();
+    }
+  }).catch(function(e){ toast('⚠️ '+String(e&&e.message||e).slice(0,50)); });
+}
+/* ══════════ PAGO PARCIAL (dividir cuenta) ══════════
+   APP._parcialPagado[id] = cantidad ya pagada de ese producto
+   APP._parcialSel[id]    = cantidad seleccionada para esta persona */
+APP.pagoParcialPersonas = function(){
+  var r = totalOrdenPR();
+  if(r.n <= 0){ toast('La orden está vacía'); return; }
+  if(!APP.turnoActivo || !APP.turnoData || APP.turnoData.estado !== 'abierta'){
+    toast('Abre la caja primero para cobrar'); return;
+  }
+  if(!APP._parcialPagado || Object.keys(APP._parcialPagado).length === 0){
+    /* primera vez que se entra a dividir: reiniciar */
+    APP._parcialPagado = {};
+    APP._parcialPersona = 1;
+  } else {
+    /* ya hubo pagos: es la siguiente persona */
+    APP._parcialPersona = (APP._parcialPersona || 1) + 1;
+  }
+  APP._parcialSel = {};
+  APP.goScreen('s-parcial');
+  renderParcial();
+};
+function pendientesParcial(){
+  /* devuelve {id: cantidadPendiente} de lo que falta por pagar */
+  var pend = {};
+  Object.keys(APP._ordenPR).forEach(function(id){
+    var total = APP._ordenPR[id];
+    var pagado = (APP._parcialPagado && APP._parcialPagado[id]) || 0;
+    var q = total - pagado;
+    if(q > 0) pend[id] = q;
+  });
+  return pend;
+}
+function faltaPorPagarTotal(){
+  var falta = 0;
+  var pend = pendientesParcial();
+  Object.keys(pend).forEach(function(id){ var p = APP.prods[id]; if(p) falta += (p.venta||0)*pend[id]; });
+  return falta;
+}
+function totalSeleccionadoParcial(){
+  var t = 0;
+  Object.keys(APP._parcialSel).forEach(function(id){ var p = APP.prods[id]; if(p) t += (p.venta||0)*APP._parcialSel[id]; });
+  return t;
+}
+function renderParcial(){
+  document.getElementById('parcial-persona').textContent = 'Persona '+APP._parcialPersona;
+  var pend = pendientesParcial();
+  var el = document.getElementById('parcial-lista');
+  var h = '';
+  Object.keys(pend).forEach(function(id){
+    var p = APP.prods[id]; if(!p) return;
+    var disp = pend[id];                        /* cantidad disponible (pendiente) */
+    var sel = (APP._parcialSel[id]||0);
+    h += '<div style="background:#fff;border:'+(sel>0?'2px solid var(--coral)':'1px solid var(--linea)')+';border-radius:14px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">';
+    h += '<div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--tinta)">'+escapa(p.nombre)+'</div><div style="font-size:11px;color:var(--gris)">'+fmtCOP(p.venta||0)+' c/u · quedan '+disp+'</div></div>';
+    h += '<div style="display:flex;align-items:center;gap:10px">';
+    h += '<div onclick="APP.parcialMenos(\''+id+'\')" style="width:30px;height:30px;border-radius:50%;background:#F3EBE2;color:var(--mar-2);font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer">−</div>';
+    h += '<span style="min-width:18px;text-align:center;font-size:16px;font-weight:800">'+sel+'</span>';
+    h += '<div onclick="APP.parcialMas(\''+id+'\')" style="width:30px;height:30px;border-radius:50%;background:var(--coral);color:#fff;font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer">+</div>';
+    h += '</div></div>';
+  });
+  if(!h) h = '<div style="text-align:center;color:var(--ok);padding:30px 10px;font-size:14px;font-weight:700">✅ Todo pagado</div>';
+  el.innerHTML = h;
+  document.getElementById('parcial-sel').textContent = fmtCOP(totalSeleccionadoParcial());
+  document.getElementById('parcial-falta').textContent = fmtCOP(faltaPorPagarTotal());
+}
+APP.parcialMas = function(id){
+  var pend = pendientesParcial();
+  var sel = APP._parcialSel[id]||0;
+  if(sel < (pend[id]||0)){ APP._parcialSel[id] = sel+1; renderParcial(); }
+};
+APP.parcialMenos = function(id){
+  var sel = APP._parcialSel[id]||0;
+  if(sel > 0){ APP._parcialSel[id] = sel-1; if(APP._parcialSel[id]===0) delete APP._parcialSel[id]; renderParcial(); }
+};
+APP.cobrarParcial = function(){
+  var tsel = totalSeleccionadoParcial();
+  if(tsel <= 0){ toast('Selecciona lo que va a pagar esta persona'); return; }
+  /* abrir la pantalla de pago normal, pero en modo parcial */
+  APP._modoParcial = true;
+  APP._pagoMontos = {}; APP._pagoSel = {}; APP._pagoRefs = {}; APP._pagoFotos = {}; APP._pagoOrig = {};
+  APP.goScreen('s-pago');
+  renderPagoParcial(tsel);
+};
+function renderPagoParcial(monto){
+  APP._parcialMontoActual = monto;
+  document.getElementById('pago-total').textContent = fmtCOP(monto);
+  var cont = document.getElementById('pago-metodos');
+  /* reusar renderPago pero con el monto de la parte */
+  renderPago(monto);
+}
+APP.cerrarParcial = function(){
+  APP._parcialSel = {};
+  APP._modoParcial = false;
+  APP.verOrdenPR();
 };
 /* guarda la venta: inventario baja + ingreso(s) a caja por método + comprobantes */
 function procesarVentaPR(){
