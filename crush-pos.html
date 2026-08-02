@@ -421,10 +421,7 @@ select.inp{appearance:none;-webkit-appearance:none}
   </div>
   <div class="wrap" style="padding-bottom:150px;padding-top:10px">
     <div class="busq-wrap"><span class="ic">🔍</span><input class="inp" id="pr-busq" type="text" placeholder="Buscar producto…" oninput="APP.buscarPR(this.value)"></div>
-    <div style="display:flex;gap:8px">
-      <div id="pr-grid" style="flex:1"></div>
-      <div id="pr-numpad" style="width:46px;display:flex;flex-direction:column;gap:5px;flex-shrink:0"></div>
-    </div>
+    <div id="pr-grid"></div>
   </div>
   <div id="pr-barra" style="position:fixed;left:0;right:0;bottom:60px;max-width:480px;margin:0 auto;background:linear-gradient(150deg,var(--mar),var(--mar-2));padding:12px 16px;display:none;align-items:center;justify-content:space-between;box-shadow:0 -4px 16px rgba(62,36,24,.2);z-index:40">
     <div onclick="APP.verOrdenPR()" style="cursor:pointer">
@@ -3991,27 +3988,9 @@ APP.buscarPR = function(v){ APP._busqPR = v||''; renderGridPR(); };
 function renderPedidoRapido(){
   if(APP._pantalla !== 's-pedrap') return;
   chipsCats('pr-cats', APP._catSelPR, 'APP.filtrarPR');
-  renderNumpadPR();
   renderGridPR();
   renderBarraPR();
 }
-function renderNumpadPR(){
-  var cont = document.getElementById('pr-numpad');
-  if(!cont) return;
-  var h = '';
-  for(var i=0;i<=9;i++){
-    h += '<div onclick="APP.numPR('+i+')" style="background:#fff;border:1px solid var(--linea);border-radius:8px;padding:8px 0;text-align:center;font-size:15px;font-weight:800;color:var(--mar-2);cursor:pointer">'+i+'</div>';
-  }
-  cont.innerHTML = h;
-}
-/* al tocar un número, fija esa cantidad al último producto tocado */
-APP.numPR = function(n){
-  if(!APP._ultimoPR){ toast('Primero toca un producto'); return; }
-  var id = APP._ultimoPR;
-  if(n === 0){ delete APP._ordenPR[id]; }
-  else { APP._ordenPR[id] = n; }
-  renderGridPR(); renderBarraPR();
-};
 function renderGridPR(){
   var cont = document.getElementById('pr-grid');
   if(!cont) return;
@@ -4022,29 +4001,53 @@ function renderGridPR(){
     if(q && (p.nombre||'').toLowerCase().indexOf(q) < 0) return false;
     return true;
   });
-  if(!ids.length){ cont.innerHTML = '<div style="text-align:center;color:var(--gris);padding:30px 10px;font-size:13px">Sin productos en esta categoría</div>'; return; }
-  var h = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  if(!ids.length){ cont.innerHTML = '<div style="text-align:center;color:var(--gris);padding:40px 10px;font-size:13px">Sin productos en esta categoria</div>'; return; }
+  var h = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
   ids.forEach(function(id){
     var p = APP.prods[id];
     var cant = APP._ordenPR[id]||0;
     var cuenta = seCuenta(p);
     var stock = p.almacen||0;
     var sel = cant > 0;
-    h += '<div onclick="APP.agregarPR(\''+id+'\')" style="background:#fff;border:2px solid '+(sel?'var(--coral)':'var(--linea)')+';border-radius:14px;padding:11px 10px;text-align:center;cursor:pointer;position:relative;box-shadow:'+(sel?'0 3px 10px rgba(200,121,65,.2)':'0 1px 3px rgba(62,36,24,.04)')+'">';
-    if(sel) h += '<div style="position:absolute;top:-8px;right:-8px;background:var(--coral);color:#fff;min-width:24px;height:24px;border-radius:12px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 6px;box-shadow:0 2px 6px rgba(200,121,65,.4)">'+cant+'</div>';
-    h += '<div style="font-size:13px;font-weight:700;color:var(--tinta);line-height:1.25;min-height:32px;display:flex;align-items:center;justify-content:center">'+escapa(p.nombre)+'</div>';
+    var emoji = emojiCat(p.categoria);
+    h += '<div style="background:#fff;border:'+(sel?'2px solid var(--coral)':'1px solid var(--linea)')+';border-radius:18px;padding:'+(sel?'14px 12px':'18px 12px')+';text-align:center;position:relative;box-shadow:'+(sel?'0 4px 14px rgba(200,121,65,.18)':'0 1px 3px rgba(62,36,24,.04)')+'">';
+    h += '<div onclick="APP.agregarPR(\''+id+'\')" style="cursor:pointer">';
+    h += '<div style="font-size:38px;line-height:1">'+emoji+'</div>';
+    h += '<div style="font-size:13px;font-weight:600;color:var(--tinta);margin-top:8px;line-height:1.2">'+escapa(p.nombre)+'</div>';
     h += '<div style="font-size:14px;font-weight:800;color:var(--coral);margin-top:3px">'+fmtCOP(p.venta||0)+'</div>';
-    if(cuenta){
-      var col = stock > 0 ? 'var(--ok)' : 'var(--rojo)';
-      h += '<div style="font-size:9.5px;color:'+col+';font-weight:700;margin-top:2px">'+(stock>0?('quedan '+fmtQty(stock)):(fmtQty(stock)+' rest.')) +'</div>';
-    } else {
-      h += '<div style="font-size:9.5px;color:var(--gris);font-weight:700;margin-top:2px">⚡ al momento</div>';
+    if(!sel){
+      if(cuenta){
+        var col = stock > 0 ? 'var(--ok)' : 'var(--rojo)';
+        h += '<div style="font-size:10px;color:'+col+';font-weight:700;margin-top:3px">'+(stock>0?('quedan '+fmtQty(stock)):(fmtQty(stock)+' rest.'))+'</div>';
+      } else {
+        h += '<div style="font-size:10px;color:var(--gris);font-weight:700;margin-top:3px">al momento</div>';
+      }
+    }
+    h += '</div>';
+    if(sel){
+      h += '<div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px">';
+      h += '<div onclick="APP.menosPRgrid(\''+id+'\')" style="width:30px;height:30px;border-radius:50%;background:#F3EBE2;color:var(--mar-2);font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer">-</div>';
+      h += '<span style="font-size:17px;font-weight:800;color:var(--tinta);min-width:18px">'+cant+'</span>';
+      h += '<div onclick="APP.agregarPR(\''+id+'\')" style="width:30px;height:30px;border-radius:50%;background:var(--coral);color:#fff;font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer">+</div>';
+      h += '</div>';
     }
     h += '</div>';
   });
   h += '</div>';
   cont.innerHTML = h;
 }
+function emojiCat(cat){
+  var m = {'\uD83E\uDD50 Cachitos':'\uD83E\uDD50','\uD83C\uDF65 Golfeados':'\uD83C\uDF65','\uD83C\uDF00 Cinnarolls':'\uD83C\uDF00','\uD83C\uDF6A Galletas':'\uD83C\uDF6A','\u2615 Cafes':'\u2615','\uD83E\uDD64 Bebidas':'\uD83E\uDD64','\uD83C\uDF70 Postres':'\uD83C\uDF70','\uD83E\uDD6A Sandwich':'\uD83E\uDD6A','\uD83D\uDCE6 Otros':'\uD83D\uDCE6'};
+  if(m[cat]) return m[cat];
+  var pref = (cat||'').split(' ')[0];
+  return pref || '\uD83C\uDF7D\uFE0F';
+}
+APP.menosPRgrid = function(id){
+  APP._ordenPR[id] = (APP._ordenPR[id]||0) - 1;
+  if(APP._ordenPR[id] <= 0) delete APP._ordenPR[id];
+  renderGridPR();
+  renderBarraPR();
+};
 APP.agregarPR = function(id){
   APP._ultimoPR = id;
   APP._ordenPR[id] = (APP._ordenPR[id]||0) + 1;
