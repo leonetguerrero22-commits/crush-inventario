@@ -452,7 +452,7 @@ select.inp{appearance:none;-webkit-appearance:none}
   </div>
   <div style="position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;border-top:1px solid var(--linea);padding:12px 14px;display:flex;gap:8px;z-index:40">
     <button class="btn sec" style="margin:0;flex:1;color:var(--rojo);border-color:#F5C6C0" onclick="APP.cerrarPago()">Cancelar</button>
-    <button class="btn" style="margin:0;flex:2;background:var(--ok)" onclick="APP.completarPago()">✅ Completar</button>
+    <button class="btn" style="margin:0;flex:2;background:var(--ok)" onclick="APP.completarPago()">✅ Pago completado</button>
   </div>
 </div>
 
@@ -4209,13 +4209,25 @@ function renderPago(){
     h += '<div style="flex:1;font-size:13px;font-weight:700;color:'+(sel?'var(--tinta)':'var(--gris)')+'">'+m.tx+'</div>';
     h += '</div>';
     if(sel){
-      h += '<div style="margin-top:10px"><input class="inp" style="margin:0;text-align:right;font-size:15px;font-weight:700" type="text" inputmode="numeric" placeholder="Monto" value="'+(val?Number(val).toLocaleString('es-CO'):'')+'" oninput="APP.setPago(\''+m.id+'\',this.value)"></div>';
+      var info = metodoInfo(m.id);
+      var esMonedaExt = info.moneda !== 'COP';
+      var simbolo = info.moneda === 'USD' ? 'USD' : (info.moneda === 'VES' ? 'Bs' : '');
+      h += '<div style="margin-top:10px;display:flex;align-items:center;gap:8px">';
+      if(esMonedaExt) h += '<span style="font-size:13px;font-weight:800;color:var(--gris);min-width:32px">'+simbolo+'</span>';
+      h += '<input class="inp" style="margin:0;text-align:right;font-size:15px;font-weight:700;flex:1" type="text" inputmode="decimal" placeholder="Monto'+(esMonedaExt?' en '+simbolo:'')+'" value="'+(val?val:'')+'" oninput="APP.setPago(\''+m.id+'\',this.value)">';
+      h += '</div>';
+      if(esMonedaExt){
+        var tasa = info.moneda === 'USD' ? (APP.tasas.usd||4200) : (APP.tasas.ves||0);
+        var montoOrig = APP._pagoOrig && APP._pagoOrig[m.id] || 0;
+        h += '<div style="font-size:11px;color:var(--coral);font-weight:700;margin-top:4px;text-align:right">'+(montoOrig>0 ? '≈ '+fmtCOP(montoOrig*tasa)+' (tasa '+tasa+')' : 'tasa del turno: '+tasa)+'</div>';
+      }
       if(esBs){
         h += '<div style="display:flex;gap:8px;margin-top:8px">';
         h += '<input class="inp" style="flex:1;margin:0" type="text" placeholder="Referencia" value="'+(APP._pagoRefs[m.id]||'')+'" oninput="APP.setRef(\''+m.id+'\',this.value)">';
         var tieneFoto = !!APP._pagoFotos[m.id];
         h += '<label style="background:'+(tieneFoto?'var(--ok)':'#F3EBE2')+';color:'+(tieneFoto?'#fff':'var(--mar-2)')+';border-radius:8px;padding:10px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center">'+(tieneFoto?'✓ Foto':'📷 Foto')+'<input type="file" accept="image/*" capture="environment" style="display:none" onchange="APP.fotoComprobante(\''+m.id+'\',this)"></label>';
         h += '</div>';
+        h += '<div style="font-size:10px;color:var(--gris);margin-top:4px">La foto es opcional · la referencia ayuda al cuadre</div>';
       }
     }
     h += '</div>';
@@ -4252,15 +4264,30 @@ APP.fotoComprobante = function(mid, input){
   reader.readAsDataURL(f);
 };
 APP.setPago = function(mid, v){
-  var n = parseFloat(String(v).replace(/[^\d]/g,''))||0;
-  if(n>0) APP._pagoMontos[mid] = n; else delete APP._pagoMontos[mid];
-  actualizarPagoTotales();
+  if(!APP._pagoOrig) APP._pagoOrig = {};
+  var n = parseFloat(String(v).replace(/[^\d.]/g,''))||0;
+  var info = metodoInfo(mid);
+  var tasa = 1;
+  if(info.moneda === 'USD') tasa = (APP.tasas.usd||4200);
+  else if(info.moneda === 'VES') tasa = (APP.tasas.ves||0);
+  if(n>0){
+    APP._pagoOrig[mid] = n;              /* monto en su moneda (para mostrar) */
+    APP._pagoMontos[mid] = n * tasa;     /* equivalente en pesos (para sumar) */
+  } else {
+    delete APP._pagoOrig[mid]; delete APP._pagoMontos[mid];
+  }
+  /* re-render solo si es moneda extranjera (para actualizar la conversión mostrada) */
+  if(info.moneda !== 'COP'){ renderPago(); }
+  else { actualizarPagoTotales(); }
 };
 APP.pagoExacto = function(){
   var r = totalOrdenPR();
   var otros = 0;
   Object.keys(APP._pagoMontos).forEach(function(k){ if(k!=='efectivo') otros += APP._pagoMontos[k]; });
-  APP._pagoMontos['efectivo'] = Math.max(0, r.total - otros);
+  var falta = Math.max(0, r.total - otros);
+  APP._pagoMontos['efectivo'] = falta;
+  if(!APP._pagoOrig) APP._pagoOrig = {};
+  APP._pagoOrig['efectivo'] = falta;
   APP._pagoSel['efectivo'] = true;
   renderPago();
 };
@@ -4330,12 +4357,31 @@ function procesarVentaPR(){
   });
   db.ref().update(updates).then(function(){
     log('venta', 'Pedido rápido '+fmtCOP(r.total)+' → caja');
-    var msg = '✅ Cobrado '+fmtCOP(r.total);
-    if(vuelto > 0) msg += ' · Vuelto '+fmtCOP(vuelto);
-    APP._ordenPR = {}; APP._pagoMontos = {}; APP._pagoRefs = {}; APP._pagoFotos = {}; APP._ultimoPR = null;
-    toast(msg);
-    APP.abrirPedidoRapido();
+    APP._ordenPR = {}; APP._pagoMontos = {}; APP._pagoOrig = {}; APP._pagoSel = {}; APP._pagoRefs = {}; APP._pagoFotos = {}; APP._ultimoPR = null;
+    mostrarOrdenCompletada(r.total, vuelto);
   }).catch(function(e){ toast('⚠️ '+String(e&&e.message||e).slice(0,50)); });
+}
+/* mensaje de éxito + regreso automático al menú (como el RePOS) */
+function mostrarOrdenCompletada(total, vuelto){
+  var ov = document.getElementById('orden-ok-overlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'orden-ok-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(62,36,24,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:30px';
+    document.body.appendChild(ov);
+  }
+  var h = '<div style="background:#fff;border-radius:24px;padding:34px 26px;text-align:center;max-width:320px;box-shadow:0 20px 60px rgba(0,0,0,.3)">';
+  h += '<div style="width:76px;height:76px;border-radius:50%;background:var(--ok);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:40px">✓</div>';
+  h += '<div style="font-size:19px;font-weight:800;color:var(--tinta)">¡Orden completada!</div>';
+  h += '<div style="font-size:14px;color:var(--gris);margin-top:8px">Total: <b style="color:var(--tinta)">'+fmtCOP(total)+'</b></div>';
+  if(vuelto > 0) h += '<div style="font-size:16px;font-weight:800;color:var(--coral);margin-top:6px">Vuelto: '+fmtCOP(vuelto)+'</div>';
+  h += '</div>';
+  ov.innerHTML = h;
+  ov.style.display = 'flex';
+  setTimeout(function(){
+    ov.style.display = 'none';
+    APP.abrirPedidoRapido();
+  }, vuelto > 0 ? 2600 : 1600);
 }
 /* placeholders de las otras pantallas POS (se construyen después) */
 APP.abrirMesas = function(){ toast('🍽️ Órdenes de mesa · próximamente'); };
