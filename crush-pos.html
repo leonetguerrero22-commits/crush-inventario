@@ -463,7 +463,7 @@ select.inp{appearance:none;-webkit-appearance:none}
       <div style="font-size:34px;font-weight:800;letter-spacing:-.03em" id="pago-total">$0</div>
       <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,.18);margin-top:12px;padding-top:10px">
         <div style="text-align:left"><div style="font-size:10px;color:rgba(255,255,255,.7)">Pagado</div><div style="font-size:16px;font-weight:800" id="pago-pagado">$0</div></div>
-        <div style="text-align:right"><div style="font-size:10px;color:rgba(255,255,255,.7)">Restante</div><div style="font-size:16px;font-weight:800" id="pago-restante">$0</div></div>
+        <div style="text-align:right"><div style="font-size:10px;color:rgba(255,255,255,.7)" id="pago-rest-label">Restante</div><div style="font-size:16px;font-weight:800" id="pago-restante">$0</div></div>
       </div>
     </div>
     <div class="lbl" style="margin-top:6px">¿Cómo pagó? · puedes combinar métodos</div>
@@ -4304,6 +4304,7 @@ APP.cobrarPR = function(){
   if(!APP.turnoActivo || !APP.turnoData || APP.turnoData.estado !== 'abierta'){
     toast('Abre la caja primero para cobrar'); return;
   }
+  APP._modoParcial = false;
   APP._pagoMontos = {}; APP._pagoSel = {}; APP._pagoRefs = {}; APP._pagoFotos = {}; APP._pagoOrig = {};
   /* auto-llenado: efectivo listo con el total (rapidez) */
   APP._pagoSel = {efectivo: true};
@@ -4452,10 +4453,11 @@ function actualizarPagoTotales(){
   var elP = document.getElementById('pago-pagado');
   var elR = document.getElementById('pago-restante');
   if(elP) elP.textContent = fmtCOP(pagado);
+  var lbl = document.getElementById('pago-rest-label');
   if(elR){
-    if(rest > 0){ elR.textContent = fmtCOP(rest); elR.previousElementSibling.textContent = 'Restante'; }
-    else if(rest < 0){ elR.textContent = fmtCOP(-rest); elR.previousElementSibling.textContent = 'Vuelto'; }
-    else { elR.textContent = '$0'; elR.previousElementSibling.textContent = 'Restante'; }
+    if(rest > 0){ elR.textContent = fmtCOP(rest); if(lbl) lbl.textContent = 'Restante'; }
+    else if(rest < 0){ elR.textContent = fmtCOP(-rest); if(lbl) lbl.textContent = 'Vuelto'; }
+    else { elR.textContent = '$0'; if(lbl) lbl.textContent = 'Restante'; }
   }
 }
 APP.completarPago = function(){
@@ -4613,15 +4615,14 @@ APP.cobrarParcial = function(){
 };
 function renderPagoParcial(monto){
   APP._parcialMontoActual = monto;
-  document.getElementById('pago-total').textContent = fmtCOP(monto);
-  var cont = document.getElementById('pago-metodos');
-  /* reusar renderPago pero con el monto de la parte */
-  renderPago(monto);
+  /* auto-llenar efectivo con el monto de la parte (rapidez) */
+  APP._pagoSel = {efectivo:true}; APP._pagoMontos = {efectivo:monto}; APP._pagoOrig = {efectivo:monto};
+  renderPago();
 }
 APP.cerrarParcial = function(){
   APP._parcialSel = {};
   APP._modoParcial = false;
-  APP.verOrdenPR();
+  APP.abrirPedidoRapido();
 };
 /* guarda la venta: inventario baja + ingreso(s) a caja por método + comprobantes */
 function procesarVentaPR(){
