@@ -1025,15 +1025,17 @@ function fechaOperativa(){
   if(d.getHours() < 5){ d.setDate(d.getDate()-1); }
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
-/* Firebase no acepta undefined: limpia recursivamente undefined de un objeto */
+/* Firebase no acepta undefined ni NaN: limpia recursivamente */
 function limpiarUndef(obj){
   if(obj === undefined || obj === null) return null;
+  if(typeof obj === 'number'){ return (isFinite(obj) ? obj : 0); }
   if(typeof obj !== 'object') return obj;
   if(Array.isArray(obj)){ return obj.map(limpiarUndef); }
   var out = {};
   Object.keys(obj).forEach(function(k){
     var v = obj[k];
     if(v === undefined) return;  /* omitir undefined */
+    if(typeof v === 'number' && !isFinite(v)){ out[k] = 0; return; }  /* NaN/Infinity → 0 */
     out[k] = (typeof v === 'object' && v !== null) ? limpiarUndef(v) : v;
   });
   return out;
@@ -4657,17 +4659,23 @@ function procesarVentaPR(){
   Object.keys(APP._ordenPR).forEach(function(id){
     var p = APP.prods[id]; if(!p) return;
     var cant = APP._ordenPR[id];
-    items[id] = {nombre:p.nombre, cant:cant, precio:p.venta||0};
-    resumen.push(cant+'× '+p.nombre);
-    if(seCuenta(p)){ updates['inventario/productos/'+id+'/almacen'] = (p.almacen||0) - cant; }
+    items[id] = {nombre:(p.nombre||'Producto'), cant:cant, precio:p.venta||0};
+    resumen.push(cant+'× '+(p.nombre||''));
+    /* solo descontar si el id es una clave válida de Firebase */
+    if(seCuenta(p) && !/[.#$\[\]\/]/.test(id)){
+      updates['inventario/productos/'+id+'/almacen'] = (p.almacen||0) - cant;
+    }
   });
   var nota = (document.getElementById('acord-nota')||document.getElementById('resumen-nota')||{}).value || '';
-  updates['ventasPOS/'+ventaId] = {
-    id:ventaId, ts:ahora, fecha:fechaOperativa(), origen:'pedido_rapido',
+  var esMesa = !!(APP._modoMesa && APP._mesaActual);
+  var ventaObj = {
+    id:ventaId, ts:ahora, fecha:fechaOperativa(), origen:(esMesa?'mesa':'pedido_rapido'),
     total:r.total, pagado:pagado, vuelto:vuelto, pagos:limpiarUndef(APP._pagoMontos||{}),
     refs:limpiarUndef(APP._pagoRefs||{}), comprobantes:limpiarUndef(APP._pagoFotos||{}),
     nota:nota||'', items:items, usuario:(APP.user&&APP.user.nombre)||'?', turnoId:APP.turnoActivo||''
   };
+  if(esMesa) ventaObj.mesa = APP._mesaActual;
+  updates['ventasPOS/'+ventaId] = ventaObj;
   /* SOLO los pagos electrónicos van a caja (transferencia/Zelle/Bancolombia).
      El efectivo NO se registra como movimiento — se cuenta físicamente en el cierre. */
   var ELECTRONICOS = ['bs','zelle','bancol'];
@@ -4685,22 +4693,23 @@ function procesarVentaPR(){
     var k = db.ref('caja/turnos/'+APP.turnoActivo+'/movimientos').push().key;
     updates['caja/turnos/'+APP.turnoActivo+'/movimientos/'+k] = mov;
   });
-  /* si es una mesa, liberarla al cobrar */
-  if(APP._modoMesa && APP._mesaActual){
+  /* si es una mesa, liberarla al cobrar (borrar el nodo de la mesa) */
+  if(esMesa){
     updates['mesas/'+APP._mesaActual] = null;
-    updates['ventasPOS/'+ventaId+'/mesa'] = APP._mesaActual;
-    updates['ventasPOS/'+ventaId+'/origen'] = 'mesa';
   }
   db.ref().update(limpiarUndef(updates)).then(function(){
-    log('venta', (APP._modoMesa?'Mesa '+APP._mesaActual+' ':'Pedido rápido ')+fmtCOP(r.total));
-    APP._ordenPR = {}; APP._pagoMontos = {}; APP._pagoOrig = {}; APP._pagoSel = {}; APP._pagoRefs = {}; APP._pagoFotos = {}; APP._ultimoPR = null;
+    log('venta', (APP._modoMesa?'Mesa '+APP._mesaActual+' ':'Pedido rápido ')+fmtCOP(r.total));    APP._ordenPR = {}; APP._pagoMontos = {}; APP._pagoOrig = {}; APP._pagoSel = {}; APP._pagoRefs = {}; APP._pagoFotos = {}; APP._ultimoPR = null;
     var eraMesa = APP._modoMesa;
     APP._modoMesa = false; APP._mesaActual = null;
     /* restaurar título del pedido rápido */
     var hd = document.querySelector('#s-pedrap h1'); if(hd) hd.textContent = '🛒 Pedido rápido';
     var mini = document.querySelector('#s-pedrap .mini'); if(mini) mini.textContent = 'Venta al paso';
     mostrarOrdenCompletada(r.total, vuelto, eraMesa);
-  }).catch(function(e){ toast('⚠️ '+String(e&&e.message||e).slice(0,50)); });
+  }).catch(function(e){
+    var msg = String(e&&e.message||e);
+    toast('⚠️ '+msg.slice(0,120));
+    console.error('update falló:', msg, 'updates:', updates);
+  });
  } catch(err){
    toast('❌ Error al cobrar: '+String(err&&err.message||err).slice(0,60));
    console.error('procesarVentaPR:', err);
