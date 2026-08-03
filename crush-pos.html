@@ -1025,6 +1025,19 @@ function fechaOperativa(){
   if(d.getHours() < 5){ d.setDate(d.getDate()-1); }
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+/* Firebase no acepta undefined: limpia recursivamente undefined de un objeto */
+function limpiarUndef(obj){
+  if(obj === undefined || obj === null) return null;
+  if(typeof obj !== 'object') return obj;
+  if(Array.isArray(obj)){ return obj.map(limpiarUndef); }
+  var out = {};
+  Object.keys(obj).forEach(function(k){
+    var v = obj[k];
+    if(v === undefined) return;  /* omitir undefined */
+    out[k] = (typeof v === 'object' && v !== null) ? limpiarUndef(v) : v;
+  });
+  return out;
+}
 function horaStr(ts){
   var d = ts ? new Date(ts) : new Date();
   var h = d.getHours(), m = String(d.getMinutes()).padStart(2,'0');
@@ -4322,6 +4335,7 @@ function montoAPagar(){
   return totalOrdenPR().total;
 }
 function renderPago(){
+ try {
   var total = montoAPagar();
   document.getElementById('pago-total').textContent = fmtCOP(total);
   var cont = document.getElementById('pago-metodos');
@@ -4368,6 +4382,10 @@ function renderPago(){
   });
   cont.innerHTML = h;
   actualizarPagoTotales();
+ } catch(err){
+   toast('❌ Error en pago: '+String(err&&err.message||err).slice(0,60));
+   console.error('renderPago:', err);
+ }
 }
 APP.toggleMetodo = function(mid){
   if(APP._pagoSel[mid]){
@@ -4494,8 +4512,8 @@ function procesarParteParcial(){
   updates['ventasPOS/'+ventaId] = {
     id:ventaId, ts:ahora, fecha:fechaOperativa(), origen:'pedido_rapido_parcial',
     persona:APP._parcialPersona, total:monto, pagado:pagado, vuelto:vuelto,
-    pagos:APP._pagoMontos, refs:(APP._pagoRefs||{}), comprobantes:(APP._pagoFotos||{}),
-    items:items, usuario:APP.user.nombre, turnoId:APP.turnoActivo
+    pagos:limpiarUndef(APP._pagoMontos||{}), refs:limpiarUndef(APP._pagoRefs||{}), comprobantes:limpiarUndef(APP._pagoFotos||{}),
+    items:items, usuario:(APP.user&&APP.user.nombre)||'?', turnoId:APP.turnoActivo||''
   };
   var ELEC_P = ['bs','zelle','bancol'];
   Object.keys(APP._pagoMontos).forEach(function(mid){
@@ -4503,14 +4521,14 @@ function procesarParteParcial(){
     var m = APP._pagoMontos[mid]; if(m<=0) return;
     var info = metodoInfo(mid);
     var mov = {tipo:'ingreso', monto:m, motivo:'Venta (parcial P'+APP._parcialPersona+') · '+resumen.slice(0,2).join(', '),
-      metodo:mid, ts:ahora, fecha:fechaOperativa(), usuario:APP.user.nombre, origen:'pedido_rapido_parcial', ventaId:ventaId};
+      metodo:mid, ts:ahora, fecha:fechaOperativa(), usuario:(APP.user&&APP.user.nombre)||'?', origen:'pedido_rapido_parcial', ventaId:ventaId};
     if(info.moneda !== 'COP') mov.moneda = info.moneda;
     if(APP._pagoRefs && APP._pagoRefs[mid]) mov.ref = APP._pagoRefs[mid];
     if(APP._pagoFotos && APP._pagoFotos[mid]) mov.comprobante = APP._pagoFotos[mid];
     var k = db.ref('caja/turnos/'+APP.turnoActivo+'/movimientos').push().key;
     updates['caja/turnos/'+APP.turnoActivo+'/movimientos/'+k] = mov;
   });
-  db.ref().update(updates).then(function(){
+  db.ref().update(limpiarUndef(updates)).then(function(){
     log('venta', 'Pago parcial P'+APP._parcialPersona+' '+fmtCOP(monto));
     APP._pagoMontos = {}; APP._pagoSel = {}; APP._pagoRefs = {}; APP._pagoFotos = {}; APP._pagoOrig = {};
     APP._parcialSel = {};
@@ -4626,6 +4644,7 @@ APP.cerrarParcial = function(){
 };
 /* guarda la venta: inventario baja + ingreso(s) a caja por método + comprobantes */
 function procesarVentaPR(){
+ try {
   var r = totalOrdenPR();
   var pagado = 0;
   Object.keys(APP._pagoMontos).forEach(function(k){ pagado += APP._pagoMontos[k]; });
@@ -4636,7 +4655,8 @@ function procesarVentaPR(){
   var items = {};
   var resumen = [];
   Object.keys(APP._ordenPR).forEach(function(id){
-    var p = APP.prods[id]; var cant = APP._ordenPR[id];
+    var p = APP.prods[id]; if(!p) return;
+    var cant = APP._ordenPR[id];
     items[id] = {nombre:p.nombre, cant:cant, precio:p.venta||0};
     resumen.push(cant+'× '+p.nombre);
     if(seCuenta(p)){ updates['inventario/productos/'+id+'/almacen'] = (p.almacen||0) - cant; }
@@ -4644,9 +4664,9 @@ function procesarVentaPR(){
   var nota = (document.getElementById('acord-nota')||document.getElementById('resumen-nota')||{}).value || '';
   updates['ventasPOS/'+ventaId] = {
     id:ventaId, ts:ahora, fecha:fechaOperativa(), origen:'pedido_rapido',
-    total:r.total, pagado:pagado, vuelto:vuelto, pagos:APP._pagoMontos,
-    refs:(APP._pagoRefs||{}), comprobantes:(APP._pagoFotos||{}),
-    nota:nota, items:items, usuario:APP.user.nombre, turnoId:APP.turnoActivo
+    total:r.total, pagado:pagado, vuelto:vuelto, pagos:limpiarUndef(APP._pagoMontos||{}),
+    refs:limpiarUndef(APP._pagoRefs||{}), comprobantes:limpiarUndef(APP._pagoFotos||{}),
+    nota:nota||'', items:items, usuario:(APP.user&&APP.user.nombre)||'?', turnoId:APP.turnoActivo||''
   };
   /* SOLO los pagos electrónicos van a caja (transferencia/Zelle/Bancolombia).
      El efectivo NO se registra como movimiento — se cuenta físicamente en el cierre. */
@@ -4657,7 +4677,7 @@ function procesarVentaPR(){
     var info = metodoInfo(mid);
     var mov = {
       tipo:'ingreso', monto:monto, motivo:'Venta · '+resumen.slice(0,3).join(', ')+(resumen.length>3?'…':''),
-      metodo:mid, ts:ahora, fecha:fechaOperativa(), usuario:APP.user.nombre, origen:'pedido_rapido', ventaId:ventaId
+      metodo:mid, ts:ahora, fecha:fechaOperativa(), usuario:(APP.user&&APP.user.nombre)||'?', origen:'pedido_rapido', ventaId:ventaId
     };
     if(info.moneda !== 'COP') mov.moneda = info.moneda;
     if(APP._pagoRefs && APP._pagoRefs[mid]) mov.ref = APP._pagoRefs[mid];
@@ -4671,7 +4691,7 @@ function procesarVentaPR(){
     updates['ventasPOS/'+ventaId+'/mesa'] = APP._mesaActual;
     updates['ventasPOS/'+ventaId+'/origen'] = 'mesa';
   }
-  db.ref().update(updates).then(function(){
+  db.ref().update(limpiarUndef(updates)).then(function(){
     log('venta', (APP._modoMesa?'Mesa '+APP._mesaActual+' ':'Pedido rápido ')+fmtCOP(r.total));
     APP._ordenPR = {}; APP._pagoMontos = {}; APP._pagoOrig = {}; APP._pagoSel = {}; APP._pagoRefs = {}; APP._pagoFotos = {}; APP._ultimoPR = null;
     var eraMesa = APP._modoMesa;
@@ -4681,6 +4701,10 @@ function procesarVentaPR(){
     var mini = document.querySelector('#s-pedrap .mini'); if(mini) mini.textContent = 'Venta al paso';
     mostrarOrdenCompletada(r.total, vuelto, eraMesa);
   }).catch(function(e){ toast('⚠️ '+String(e&&e.message||e).slice(0,50)); });
+ } catch(err){
+   toast('❌ Error al cobrar: '+String(err&&err.message||err).slice(0,60));
+   console.error('procesarVentaPR:', err);
+ }
 }
 /* mensaje de éxito + regreso automático al menú (como el RePOS) */
 function mostrarOrdenCompletada(total, vuelto, eraMesa){
