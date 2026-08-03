@@ -1460,13 +1460,28 @@ APP.confirmarHuellaPin = function(){
   var pin = (document.getElementById('hue-pin')||{}).value || '';
   if(String(APP.user.pin) !== pin){ toast('❌ PIN incorrecto'); return; }
   var uid = APP.user.id, nom = APP.user.nombre;
+  /* verificar requisitos antes de intentar */
+  if(!window.isSecureContext){
+    APP.cerrarModal();
+    toast('⚠️ La huella solo funciona abriendo la app desde el enlace https de GitHub Pages, no desde un archivo descargado.');
+    return;
+  }
+  if(!HUELLA.soportada()){
+    APP.cerrarModal();
+    toast('⚠️ Este teléfono/navegador no soporta huella (WebAuthn).');
+    return;
+  }
   APP.cerrarModal();
   HUELLA.activar(uid, nom).then(function(){
     toast('✅ Huella activada en este teléfono');
     log('huella', nom+' activó huella en este dispositivo');
     actualizarCardHuella();
   }).catch(function(e){
-    if(e) toast('No se pudo activar la huella · intenta de nuevo');
+    var msg = (e && e.name) ? e.name : String(e||'');
+    if(msg === 'NotAllowedError'){ toast('Cancelaste o no se detectó la huella. Intenta de nuevo.'); }
+    else if(msg === 'InvalidStateError'){ toast('Ya hay una huella registrada en este dispositivo.'); }
+    else if(msg === 'SecurityError'){ toast('⚠️ Debe abrirse desde el enlace https de GitHub Pages.'); }
+    else { toast('No se pudo activar: '+msg.slice(0,50)); }
   });
 };
 APP.miPerfil = function(){
