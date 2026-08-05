@@ -391,7 +391,6 @@ select.inp{appearance:none;-webkit-appearance:none}
     <div class="acciones">
       <button class="acc in" onclick="APP.modalMov('ingreso')">＋ Ingreso</button>
       <button class="acc out" onclick="APP.modalMov('egreso')">－ Egreso</button>
-      <button class="acc acc-pos" onclick="APP.pedirFoto('print')">📸 Foto de las anotaciones (opcional)</button>
     </div>
     <div class="card">
       <div class="lbl">Movimientos del turno</div>
@@ -555,27 +554,17 @@ select.inp{appearance:none;-webkit-appearance:none}
       <input id="c-tusd" type="hidden" value="4200"><input id="c-tves" type="hidden" value="0">
     </div>
     <div class="card">
-      <div class="lbl">Venta según el POS</div>
-      <div class="print-box" id="ci-printbox" onclick="APP.pedirFoto('cierre')">
-        <div class="th" id="ci-print-th">📸</div>
-        <div style="flex:1">
-          <b style="font-size:13px" id="ci-print-tx">Adjuntar print del POS</b>
-          <div style="font-size:11px;color:var(--gris)" id="ci-print-sub">Toca para tomar foto o elegir de galería</div>
-        </div>
+      <div class="lbl">Venta registrada en el POS</div>
+      <div style="background:var(--crema);border-radius:12px;padding:14px;text-align:center">
+        <div style="font-size:11px;color:var(--gris);font-weight:700">TOTAL VENDIDO ESTE TURNO (automático)</div>
+        <div style="font-size:26px;font-weight:800;color:var(--coral)" id="pos-auto">$0</div>
+        <div style="font-size:10px;color:var(--gris);margin-top:4px" id="pos-auto-n">0 pedidos registrados</div>
       </div>
-      <div class="fila-inp" style="margin:12px 0 0"><div class="tag">Total POS (COP)</div><input class="inp" id="c-pos" type="text" inputmode="numeric" placeholder="0" style="text-align:right" oninput="APP.fmtMiles(this);APP.calcCierre()"></div>
-      <button class="btn sec" id="btn-ocr" style="margin-top:10px" onclick="APP.leerTotalPrint()">🔍 Leer total del print automáticamente</button>
-      <div style="font-size:10px;color:var(--gris);margin-top:5px">Copia el total directo del print del POS. Toca el lector para leerlo automáticamente, o escríbelo a mano.</div>
-      <div id="pos-prev-wrap" style="display:none">
-        <div class="fila-inp" style="margin:10px 0 0"><div class="tag">− Corte mañana</div><input class="inp" id="c-posprev" type="text" inputmode="numeric" placeholder="0" style="text-align:right" oninput="APP.fmtMiles(this);APP.calcCierre()"></div>
-        <div style="font-size:10px;color:var(--gris);margin-top:5px">El POS acumula todo el día: se descuenta lo ya cortado en la mañana.</div>
-        <div class="tot-line big" style="padding-top:8px"><span>= POS de este turno</span><b id="pos-neto">$0</b></div>
-      </div>
+      <input id="c-pos" type="hidden" value="0">
+      <input id="c-posprev" type="hidden" value="0">
     </div>
     <div class="card">
       <div class="lbl">Resumen</div>
-      <div class="tot-line" id="r-vpesc-wrap" style="display:none"><span>🛒 Vendido en pescadería (estimado)</span><b id="r-vpesc">$0</b></div>
-      <div class="tot-line" id="r-rest-wrap" style="display:none"><span>🍽️ Salió al restaurante (a costo)</span><b id="r-rest">$0</b></div>
       <div class="tot-line"><span>Efectivo contado (a tasas)</span><b id="r-contado">$0</b></div>
       <div class="tot-line"><span>＋ Pagos digitales (Nequi/Bancol/Zelle)</span><b id="r-dig">$0</b></div>
       <div class="tot-line"><span>− Fondo inicial</span><b id="r-fondo">$0</b></div>
@@ -2461,54 +2450,23 @@ document.getElementById('foto-inp').addEventListener('change', function(e){
 APP._salidasHoy = {costo:0, venta:0, n:0};
 APP._ventasPescHoy = {total:0, costo:0, n:0};
 function cargarSalidasHoy(fecha, fechaAlt){
-  var fechas = [fecha];
-  if(fechaAlt && fechaAlt !== fecha) fechas.push(fechaAlt);
-  /* Salidas al restaurante — combinamos ambas fechas sin duplicar */
-  Promise.all(fechas.map(function(f){
-    return db.ref('inventario/salidasRest').orderByChild('fecha').equalTo(f).once('value');
-  })).then(function(snaps){
-    var vistos = {}, costo = 0, venta = 0, n = 0, det = [];
-    snaps.forEach(function(snap){
-      var v = snap.val()||{};
-      Object.keys(v).forEach(function(k){
-        if(vistos[k]) return; vistos[k] = 1;
-        costo += (v[k].totalCosto||0);
-        venta += (v[k].totalVenta||0);
-        n++;
-        det.push({nombre:v[k].nombre, cant:v[k].cant, unidad:v[k].unidad, costo:v[k].totalCosto||0, venta:v[k].totalVenta||0});
-      });
+  /* CRUSH no tiene salidas al restaurante ni ventas de pescadería — sin operación */
+  APP._salidasHoy = {costo:0, venta:0, n:0, det:[]};
+  APP._ventasPescHoy = {total:0, costo:0, n:0, det:[]};
+}
+function cargarTotalPOSauto(){
+  db.ref('ventasPOS').orderByChild('turnoId').equalTo(APP.turnoActivo||'__none__').once('value').then(function(snap){
+    var total = 0, n = 0;
+    snap.forEach(function(ch){
+      var v = ch.val();
+      if(v && !v.anulado){ total += (v.total||0); n++; }
     });
-    APP._salidasHoy = {costo:costo, venta:venta, n:n, det:det};
-    var w = document.getElementById('r-rest-wrap');
-    var e = document.getElementById('r-rest');
-    if(w && e){
-      w.style.display = n ? 'flex' : 'none';
-      e.innerHTML = fmtCOP(costo)+(venta?' <small style="font-weight:700;color:var(--gris)">· ref. venta '+fmtCOP(venta)+'</small>':'');
-    }
-    APP.calcCierre();
-  }).catch(function(){});
-  /* Ventas de pescadería — igual, combinando ambas fechas */
-  Promise.all(fechas.map(function(f){
-    return db.ref('ventasPesc').orderByChild('fecha').equalTo(f).once('value');
-  })).then(function(snaps){
-    var vistos = {}, total = 0, costo = 0, n = 0, det = [];
-    snaps.forEach(function(snap){
-      var v = snap.val()||{};
-      Object.keys(v).forEach(function(k){
-        if(vistos[k]) return; vistos[k] = 1;
-        total += (v[k].total||0);
-        costo += (v[k].totalCosto||0);
-        n++;
-        det.push({nombre:v[k].nombre, cant:v[k].cant, unidad:v[k].unidad, total:v[k].total||0});
-      });
-    });
-    APP._ventasPescHoy = {total:total, costo:costo, n:n, det:det};
-    var w = document.getElementById('r-vpesc-wrap');
-    var e = document.getElementById('r-vpesc');
-    if(w && e){
-      w.style.display = n ? 'flex' : 'none';
-      e.textContent = fmtCOP(total)+' ('+n+' registro'+(n===1?'':'s')+')';
-    }
+    var el = document.getElementById('pos-auto');
+    var eln = document.getElementById('pos-auto-n');
+    var hid = document.getElementById('c-pos');
+    if(el) el.textContent = fmtCOP(total);
+    if(eln) eln.textContent = n + (n===1?' pedido registrado':' pedidos registrados');
+    if(hid) hid.value = total;
     APP.calcCierre();
   }).catch(function(){});
 }
@@ -2523,27 +2481,15 @@ APP.irCierre = function(){
   document.getElementById('c-tves').value = APP.tasas.ves||0;
   var ctt = document.getElementById('ci-tasas-tx');
   if(ctt) ctt.textContent = 'USD '+(APP.tasas.usd||4200)+' · VES '+(APP.tasas.ves||0);
+  /* CRUSH: el POS está integrado, el total de ventas es automático */
+  cargarTotalPOSauto();
   /* precargar pagos digitales registrados en el turno (si los campos están vacíos) */
   var s = sumMovs();
   if(!valMiles('c-bancol') && s.bancol) document.getElementById('c-bancol').value = s.bancol.toLocaleString('es-CO');
   if(!valNum('c-zelle') && s.zelleUSD) document.getElementById('c-zelle').value = s.zelleUSD;
   if(!valNum('c-bs') && s.bsVES) document.getElementById('c-bs').value = s.bsVES;
-  /* El POS acumula el día completo: si es turno noche, precargar el corte de la mañana */
-  var wrapPrev = document.getElementById('pos-prev-wrap');
-  if(d.turno === 'noc'){
-    wrapPrev.style.display = 'block';
-    db.ref('caja/turnos/'+(d.fecha||fechaOperativa())+'_man').once('value').then(function(snap){
-      var man = snap.val();
-      var corte = (man && man.cierre) ? (man.cierre.posAcumulado || man.cierre.totalPOS || 0) : 0;
-      if(!valMiles('c-posprev') && corte){
-        document.getElementById('c-posprev').value = corte.toLocaleString('es-CO');
-      }
-      APP.calcCierre();
-    });
-  } else {
-    wrapPrev.style.display = 'none';
-    document.getElementById('c-posprev').value = '';
-  }
+  /* CRUSH: el POS es automático por turno (ventasPOS filtra por turnoId), no hay corte previo */
+  var cp = document.getElementById('c-posprev'); if(cp) cp.value = '0';
   /* precargar el último print del turno si existe */
   if(!APP._fotoCierre){
     var movs = d.movimientos||{};
@@ -2604,34 +2550,23 @@ APP.calcCierre = function(){
   document.getElementById('r-egr').textContent = fmtCOP(c.egr);
   document.getElementById('r-venta').textContent = fmtCOP(c.venta);
   var el = document.getElementById('r-dif');
-  var est = (APP._ventasPescHoy && APP._ventasPescHoy.total) || 0;
-  /* desglose en vivo: pescadería vs restaurante (usa el POS que la cajera va poniendo) */
+  /* CRUSH: cuadre directo — lo contado en caja (venta) vs el total del POS integrado */
   var cont = document.getElementById('cierre-desglose-vivo');
-  if(cont){
-    var htmlDesg = htmlDesgloseVenta({
-      ventaPescEstimada: est,
-      totalPOS: c.pos,
-      ventaPescDet: (APP._ventasPescHoy&&APP._ventasPescHoy.det)||[],
-      salidasRestDet: (APP._salidasHoy&&APP._salidasHoy.det)||[]
-    }, 'vivo');
-    cont.innerHTML = htmlDesg ? ('<div style="text-align:center;font-size:10px;color:#B0B8BD;margin:6px 0 10px;letter-spacing:1px">— información extra (opcional) —</div>' + htmlDesg) : '';
-  }
-  if(!c.posAcum && est > 0){
-    /* cuadre de mercancía: lo vendido estimado vs lo que entró en caja */
-    var difM = c.venta - est;
-    var absM = Math.abs(difM);
-    var pctM = est > 0 ? absM/est : 0;
-    if(pctM <= 0.05){ el.className = 'dif ok'; el.textContent = '✅ Cuadra con lo vendido: caja '+fmtCOP(c.venta)+' vs estimado '+fmtCOP(est)+' ('+(difM>=0?'+':'−')+fmtCOP(absM)+')'; }
-    else if(pctM <= 0.15){ el.className = 'dif warn'; el.textContent = '⚠️ Caja '+fmtCOP(c.venta)+' vs vendido estimado '+fmtCOP(est)+' · dif '+(difM>=0?'+':'−')+fmtCOP(absM); }
-    else { el.className = 'dif bad'; el.textContent = '🚨 Caja '+fmtCOP(c.venta)+' vs vendido estimado '+fmtCOP(est)+' · dif '+(difM>=0?'+':'−')+fmtCOP(absM)+' — revisa ventas sin registrar o registros de más'; }
-  } else if(!c.posAcum){
+  if(cont) cont.innerHTML = '';
+  var difPos = c.venta - c.pos;   /* lo que quedó en caja menos lo que dice el POS */
+  var absP = Math.abs(difPos);
+  if(c.pos <= 0){
     el.className = 'dif ok';
-    el.textContent = '📗 Arqueo directo · venta del turno '+fmtCOP(c.venta);
+    el.textContent = '📗 Venta del turno (caja): '+fmtCOP(c.venta);
+  } else if(absP <= 2000){
+    el.className = 'dif ok';
+    el.textContent = '✅ Cuadre OK · caja '+fmtCOP(c.venta)+' vs POS '+fmtCOP(c.pos)+' (dif '+(difPos>=0?'+':'−')+fmtCOP(absP)+')';
+  } else if(absP <= 20000){
+    el.className = 'dif warn';
+    el.textContent = '⚠️ Caja '+fmtCOP(c.venta)+' vs POS '+fmtCOP(c.pos)+' · dif '+(difPos>=0?'+':'−')+fmtCOP(absP);
   } else {
-    var abs = Math.abs(c.dif);
-    if(abs <= 2000){ el.className = 'dif ok'; el.textContent = '✅ Cuadre OK · diferencia '+fmtCOP(c.dif)+' vs lo anotado'; }
-    else if(abs <= 20000){ el.className = 'dif warn'; el.textContent = '⚠️ Diferencia '+fmtCOP(c.dif)+' vs lo anotado'; }
-    else { el.className = 'dif bad'; el.textContent = '🚨 Diferencia '+fmtCOP(c.dif)+' vs lo anotado — revisa el conteo'; }
+    el.className = 'dif bad';
+    el.textContent = '🚨 Caja '+fmtCOP(c.venta)+' vs POS '+fmtCOP(c.pos)+' · dif '+(difPos>=0?'+':'−')+fmtCOP(absP)+' — revisa el conteo o ventas sin registrar';
   }
 };
 APP._guardandoCierre = false;
